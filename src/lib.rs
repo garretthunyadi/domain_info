@@ -4,10 +4,13 @@ mod page;
 use dns::{DnsInfo, HostInfo};
 use page::PageInfo;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Domain(String);
 
 impl Domain {
+    pub fn clone(d: &Domain) -> Domain {
+        Domain(String::from(&d.0))
+    }
     pub fn from(s: &str) -> Option<Domain> {
         if s.contains('.') {
             Some(Domain(String::from(s.trim())))
@@ -21,14 +24,30 @@ impl Domain {
 pub struct DomainInfo {
     domain: Domain,
     dns_info: DnsInfo,
-    host_info: HostInfo,
-    ssl_info: SslInfo,
-    front_page_info: PageInfo,
-    mx_info: MxInfo,
-    whois_info: WhoisInfo,
+    host_info: Option<HostInfo>,
+    ssl_info: Option<SslInfo>,
+    front_page_info: Option<PageInfo>,
+    mx_info: Option<MxInfo>,
+    whois_info: Option<WhoisInfo>,
 
-    crawl_info: CrawlInfo,
-    screenshot_info: ScreenshotInfo,
+    crawl_info: Option<CrawlInfo>,
+    screenshot_info: Option<ScreenshotInfo>,
+}
+
+impl DomainInfo {
+    pub fn from(domain: Domain, dns_info: DnsInfo) -> DomainInfo {
+        DomainInfo {
+            domain,
+            dns_info,
+            host_info: None,
+            ssl_info: None,
+            front_page_info: None,
+            mx_info: None,
+            whois_info: None,
+            crawl_info: None,
+            screenshot_info: None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -47,8 +66,15 @@ pub trait Scanner<Res> {
     fn scan(&self) -> Res;
 }
 
-fn domain_scan(_: &Domain) -> Option<DomainInfo> {
-    None
+fn domain_scan(domain: &Domain) -> Option<DomainInfo> {
+    if let Some(dns_info) = DnsInfo::from(domain) {
+        let ip = dns_info.ips[0]; // TODO: deal with the indexing issue
+        let mut domain_info = DomainInfo::from(Domain::clone(domain), dns_info);
+        domain_info.host_info = HostInfo::from(&ip);
+        Some(domain_info)
+    } else {
+        None
+    }
 }
 
 impl Scanner<Option<DomainInfo>> for Domain {

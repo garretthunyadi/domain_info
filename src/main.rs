@@ -6,7 +6,7 @@ fn main() {
     let domain_infos = domains.scan();
 
     for info in domain_infos {
-        println!("DOMAIN INFO: {:?}", info);
+        println!("{:?}", info);
     }
 }
 
@@ -23,13 +23,10 @@ fn read_domains_from_stdin() -> Vec<Domain> {
             break;
         }
         if let Some(domain) = Domain::from(line) {
-            println!("Found: '{:?}'",&domain);
             domains.push(domain);
-
         } else {
-            println!("(bad domain: '{}'",line);
+            println!("(bad domain: '{}'", line);
         }
     }
     domains
 }
-

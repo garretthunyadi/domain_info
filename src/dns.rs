@@ -1,11 +1,49 @@
 extern crate dns_lookup;
-
-use super::{Domain, Scanner};
+use super::Domain;
 
 #[derive(Debug, PartialEq)]
 pub struct DnsInfo {
-    ips: Vec<std::net::IpAddr>,
+    pub ips: Vec<std::net::IpAddr>,
 }
+
+impl DnsInfo {
+    pub fn from(domain:&Domain) -> Option<DnsInfo> {
+        dns_lookup(domain)
+    }
+}
+
+// impl Scanner<Option<DnsInfo>> for Domain {
+//     fn scan(&self) -> Option<DnsInfo> {
+//         dns_lookup(self)
+//     }
+// }
+
+// impl Scanner<DnsInfo> for Domain {
+//     fn scan(&self) -> DnsInfo {
+//         if let Some(dns_info) = dns_lookup(self) {
+//             dns_info
+//         } else { DnsInfo{ips:vec![]} }
+//     }
+// }
+
+#[derive(Debug, PartialEq)]
+pub struct HostInfo {
+    pub host: Host,
+    pub host_tld: HostTld,
+    pub platform: HostPlatform,
+}
+
+impl HostInfo {
+    pub fn from(ip:&std::net::IpAddr) -> Option<HostInfo> {
+        host_lookup(ip)
+    }
+}
+
+// impl Scanner<Option<HostInfo>> for std::net::IpAddr {
+//     fn scan(&self) -> Option<HostInfo> {
+//         host_lookup(self)
+//     }
+// }
 
 #[derive(Debug, PartialEq)]
 pub struct Host(String);
@@ -90,23 +128,6 @@ impl HostPlatform {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct HostInfo {
-    host: Host,
-    host_tld: HostTld,
-    platform: HostPlatform,
-}
-
-impl Scanner<Option<DnsInfo>> for Domain {
-    fn scan(&self) -> Option<DnsInfo> {
-        dns_lookup(self)
-    }
-}
-impl Scanner<Option<HostInfo>> for std::net::IpAddr {
-    fn scan(&self) -> Option<HostInfo> {
-        host_lookup(self)
-    }
-}
 
 // TODO: should change this to use result
 fn dns_lookup(domain: &Domain) -> Option<DnsInfo> {
