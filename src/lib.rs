@@ -2,7 +2,7 @@ mod dns;
 mod page;
 
 use dns::{DnsInfo, HostInfo};
-use page::PageInfo;
+// use page::PageInfo;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Domain(String);
@@ -26,12 +26,12 @@ pub struct DomainInfo {
     dns_info: DnsInfo,
     host_info: Option<HostInfo>,
     ssl_info: Option<SslInfo>,
-    front_page_info: Option<PageInfo>,
-    mx_info: Option<MxInfo>,
-    whois_info: Option<WhoisInfo>,
+    // front_page_info: Option<PageInfo>,
+    // mx_info: Option<MxInfo>,
+    // whois_info: Option<WhoisInfo>,
 
-    crawl_info: Option<CrawlInfo>,
-    screenshot_info: Option<ScreenshotInfo>,
+    // crawl_info: Option<CrawlInfo>,
+    // screenshot_info: Option<ScreenshotInfo>,
 }
 
 impl DomainInfo {
@@ -41,11 +41,11 @@ impl DomainInfo {
             dns_info,
             host_info: None,
             ssl_info: None,
-            front_page_info: None,
-            mx_info: None,
-            whois_info: None,
-            crawl_info: None,
-            screenshot_info: None,
+            // front_page_info: None,
+            // mx_info: None,
+            // whois_info: None,
+            // crawl_info: None,
+            // screenshot_info: None,
         }
     }
 }
@@ -68,7 +68,7 @@ pub trait Scanner<Res> {
 
 fn domain_scan(domain: &Domain) -> Option<DomainInfo> {
     if let Some(dns_info) = DnsInfo::from(domain) {
-        let ip = dns_info.ips[0]; // TODO: deal with the indexing issue
+        let ip = dns_info.ip;
         let mut domain_info = DomainInfo::from(Domain::clone(domain), dns_info);
         domain_info.host_info = HostInfo::from(&ip);
         Some(domain_info)

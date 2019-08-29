@@ -3,7 +3,8 @@ use super::Domain;
 
 #[derive(Debug, PartialEq)]
 pub struct DnsInfo {
-    pub ips: Vec<std::net::IpAddr>,
+    pub ip: std::net::IpAddr,
+    pub other_ips: Vec<std::net::IpAddr>,
 }
 
 impl DnsInfo {
@@ -132,8 +133,11 @@ impl HostPlatform {
 // TODO: should change this to use result
 fn dns_lookup(domain: &Domain) -> Option<DnsInfo> {
     if let Ok(ips) = dns_lookup::lookup_host(&domain.0) {
-        println!("{:?} ips: {:?}", domain, ips);
-        Some(DnsInfo { ips })
+        if let Some((first,rest)) = ips.split_first() {
+            Some(DnsInfo { ip: *first, other_ips: rest.to_vec() })
+        } else {
+            None
+        }
     } else {
         None
     }
@@ -197,7 +201,7 @@ mod tests {
     fn my_host_lookup() {
         // first get the ip for google.com
         if let Some(dns_info) = dns_lookup(&Domain("google.com".to_string())) {
-            let google_ip = dns_info.ips[0];
+            let google_ip = dns_info.ip;
 
             // and then get a host
             if let Some(host_info) = host_lookup(&google_ip) {
