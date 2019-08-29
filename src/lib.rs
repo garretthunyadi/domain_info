@@ -1,3 +1,9 @@
+mod dns;
+mod page;
+
+use dns::{DnsInfo, HostInfo};
+use page::PageInfo;
+
 #[derive(Debug, PartialEq)]
 pub struct Domain(String);
 
@@ -13,15 +19,41 @@ impl Domain {
 
 #[derive(Debug, PartialEq)]
 pub struct DomainInfo {
+    domain: Domain,
+    dns_info: DnsInfo,
+    host_info: HostInfo,
+    ssl_info: SslInfo,
+    front_page_info: PageInfo,
+    mx_info: MxInfo,
+    whois_info: WhoisInfo,
+
+    crawl_info: CrawlInfo,
+    screenshot_info: ScreenshotInfo,
 }
+
+#[derive(Debug, PartialEq)]
+pub struct SslInfo {}
+#[derive(Debug, PartialEq)]
+pub struct MxInfo {}
+#[derive(Debug, PartialEq)]
+pub struct WhoisInfo {}
+
+#[derive(Debug, PartialEq)]
+pub struct CrawlInfo {}
+#[derive(Debug, PartialEq)]
+pub struct ScreenshotInfo {}
 
 pub trait Scanner<Res> {
     fn scan(&self) -> Res;
 }
 
+fn domain_scan(_: &Domain) -> Option<DomainInfo> {
+    None
+}
+
 impl Scanner<Option<DomainInfo>> for Domain {
     fn scan(&self) -> Option<DomainInfo> {
-        None
+        domain_scan(self)
     }
 }
 impl Scanner<Option<DomainInfo>> for str {
