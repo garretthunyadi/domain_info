@@ -13,3 +13,4 @@ serde_derive = "1.0"
 unicode-segmentation = "0.1.2"
 chrono = { version = "0.4", features = ["serde"] }
 dns-lookup = "1.0.1"
+reqwest = "0.9.19"

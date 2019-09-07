@@ -8,7 +8,7 @@ pub struct DnsInfo {
 }
 
 impl DnsInfo {
-    pub fn from(domain:&Domain) -> Option<DnsInfo> {
+    pub fn from(domain: &Domain) -> Option<DnsInfo> {
         dns_lookup(domain)
     }
 }
@@ -35,7 +35,7 @@ pub struct HostInfo {
 }
 
 impl HostInfo {
-    pub fn from(ip:&std::net::IpAddr) -> Option<HostInfo> {
+    pub fn from(ip: &std::net::IpAddr) -> Option<HostInfo> {
         host_lookup(ip)
     }
 }
@@ -129,12 +129,14 @@ impl HostPlatform {
     }
 }
 
-
 // TODO: should change this to use result
 fn dns_lookup(domain: &Domain) -> Option<DnsInfo> {
     if let Ok(ips) = dns_lookup::lookup_host(&domain.0) {
-        if let Some((first,rest)) = ips.split_first() {
-            Some(DnsInfo { ip: *first, other_ips: rest.to_vec() })
+        if let Some((first, rest)) = ips.split_first() {
+            Some(DnsInfo {
+                ip: *first,
+                other_ips: rest.to_vec(),
+            })
         } else {
             None
         }
@@ -190,10 +192,8 @@ mod tests {
 
     #[test]
     fn my_dns_lookup() {
-        if let Some(dns_info) = dns_lookup(&Domain("google.com".to_string())) {
-            assert!(!dns_info.ips.is_empty());
-        } else {
-            unreachable!();
+        if dns_lookup(&Domain("google.com".to_string())).is_none() {
+            panic!();
         }
     }
 

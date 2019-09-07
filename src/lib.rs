@@ -1,6 +1,14 @@
 mod dns;
 mod page;
 
+// pub enum ScanError {
+//     Dns(String),
+//     Content(String),
+//     Core(String),
+//     Head(String),
+// }
+// use std::fmt;
+
 use dns::{DnsInfo, HostInfo};
 // use page::PageInfo;
 
@@ -19,6 +27,11 @@ impl Domain {
         }
     }
 }
+// impl fmt::Display for Domain {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//             write!(f, "Domain({})", self.0)
+//     }
+// }
 
 #[derive(Debug, PartialEq)]
 pub struct DomainInfo {
@@ -49,6 +62,12 @@ impl DomainInfo {
         }
     }
 }
+
+// impl fmt::Display for DomainInfo {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//             write!(f, "({}, {:?})", self.domain, self.dns_info)
+//     }
+// }
 
 #[derive(Debug, PartialEq)]
 pub struct SslInfo {}
