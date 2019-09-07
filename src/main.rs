@@ -27,8 +27,8 @@ fn main() -> io::Result<()> {
         println!("domain: {}", domain_name);
         if let Some(domain) = Domain::from(&domain_name) {
             if let Some(dinfo) = domain.scan() {
-                println!("{:?}",dinfo);
-                return Ok(())
+                println!("{:?}", dinfo);
+                return Ok(());
             }
         }
         // if let Some(domain_info) = domain.scan() {
