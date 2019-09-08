@@ -1,5 +1,5 @@
 extern crate dns_lookup;
-use super::Domain;
+use super::{Domain, ScanError, ScannerResult};
 
 #[derive(Debug, PartialEq)]
 pub struct DnsInfo {
@@ -8,7 +8,7 @@ pub struct DnsInfo {
 }
 
 impl DnsInfo {
-    pub fn from(domain: &Domain) -> Option<DnsInfo> {
+    pub fn from(domain: &Domain) -> ScannerResult<DnsInfo> {
         dns_lookup(domain)
     }
 }
@@ -129,20 +129,16 @@ impl HostPlatform {
     }
 }
 
-// TODO: should change this to use result
-fn dns_lookup(domain: &Domain) -> Option<DnsInfo> {
-    if let Ok(ips) = dns_lookup::lookup_host(&domain.0) {
-        if let Some((first, rest)) = ips.split_first() {
-            Some(DnsInfo {
-                ip: *first,
-                other_ips: rest.to_vec(),
-            })
-        } else {
-            None
-        }
-    } else {
-        None
-    }
+fn dns_lookup(domain: &Domain) -> ScannerResult<DnsInfo> {
+    let ips = dns_lookup::lookup_host(&domain.0)
+        .or_else(|_| Err(ScanError::Dns("couldn't lookup".to_string())))?;
+    let (first, rest) = ips
+        .split_first()
+        .ok_or_else(|| ScanError::Dns("no ips found (I think)".to_string()))?;
+    Ok(DnsInfo {
+        ip: *first,
+        other_ips: rest.to_vec(),
+    })
 }
 
 fn host_lookup(ip: &std::net::IpAddr) -> Option<HostInfo> {
@@ -192,7 +188,7 @@ mod tests {
 
     #[test]
     fn my_dns_lookup() {
-        if dns_lookup(&Domain("google.com".to_string())).is_none() {
+        if dns_lookup(&Domain("google.com".to_string())).is_err() {
             panic!();
         }
     }
@@ -200,16 +196,15 @@ mod tests {
     #[test]
     fn my_host_lookup() {
         // first get the ip for google.com
-        if let Some(dns_info) = dns_lookup(&Domain("google.com".to_string())) {
+        if let Ok(dns_info) = dns_lookup(&Domain("google.com".to_string())) {
             let google_ip = dns_info.ip;
 
             // and then get a host
             if let Some(host_info) = host_lookup(&google_ip) {
                 assert_eq!(HostPlatform::Google, host_info.platform);
-                assert_eq!(
-                    Host("bom07s20-in-f14.1e100.net".to_string()),
-                    host_info.host
-                );
+                // bom07s20-in-f14.1e100.net
+                // lga34s12-in-f14.1e100.net
+                assert!(host_info.host.0.contains("1e100.net"))
             } else {
                 unreachable!();
             }
