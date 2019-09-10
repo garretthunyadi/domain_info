@@ -13,6 +13,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("domain: {}", domain_name);
     let domain: Domain = Domain::from(&domain_name)?;
     let info = domain.scan();
-    println!("{:?}", info);
+    println!("{}",serde_json::to_string(&info).unwrap());
     Ok(())
 }
