@@ -1,7 +1,8 @@
 extern crate dns_lookup;
 use super::{Domain, ScanError, ScannerResult};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct DnsInfo {
     pub ip: std::net::IpAddr,
     pub other_ips: Vec<std::net::IpAddr>,
@@ -27,7 +28,7 @@ impl DnsInfo {
 //     }
 // }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HostInfo {
     pub host: Host,
     pub host_tld: HostTld,
@@ -46,12 +47,12 @@ impl HostInfo {
 //     }
 // }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Host(String);
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HostTld(String);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum HostPlatform {
     A2Hosting,
     AmazonAws,

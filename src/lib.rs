@@ -1,41 +1,70 @@
+extern crate reqwest;
 mod dns;
 mod page;
 
 use std::error::Error;
 use std::fmt;
+// use std::fmt;
+use dns::{DnsInfo, HostInfo};
+use page::PageInfo;
+// use page::PageInfo;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ScanError {
     Domain(String),
     Dns(String),
     Content(String),
-    Core(String),
+    Page(String),
     Head(String),
     Other(String),
 }
 impl fmt::Display for ScanError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SuperError is here!")
+        write!(
+            f,
+            "{}",
+            match self {
+                ScanError::Domain(err) => format!("Domain/{}", err),
+                ScanError::Dns(err) => format!("Dns/{}", err),
+                ScanError::Content(err) => format!("Content/{}", err),
+                ScanError::Page(err) => format!("Page/{}", err),
+                ScanError::Head(err) => format!("Head/{}", err),
+                ScanError::Other(err) => format!("Other/{}", err),
+            }
+        )
     }
 }
 impl Error for ScanError {
-    fn description(&self) -> &str {
-        "I'm the superhero of errors"
-    }
+    // fn description(&self) -> &str {
+    //     &format!("{}", &self.to_string())
+    // }
 }
 
-// std::convert::From<std::io::Error>
 impl std::convert::From<std::io::Error> for ScanError {
-    fn from(ioe: std::io::Error) -> Self {
-        ScanError::Other(ioe.to_string())
+    fn from(err: std::io::Error) -> Self {
+        ScanError::Other(err.to_string())
+    }
+}
+impl From<&dyn std::error::Error> for ScanError {
+    fn from(err: &dyn std::error::Error) -> Self {
+        ScanError::Other(err.to_string())
+    }
+}
+// the trait `std::convert::From<page::reqwest::Error>` is not implemented for `ScanError`
+impl From<reqwest::Error> for ScanError {
+    fn from(err: reqwest::Error) -> Self {
+        ScanError::Other(err.to_string())
+    }
+}
+// the trait `std::convert::From<std::str::Utf8Error>` is not implemented for `ScanError`
+impl From<std::str::Utf8Error> for ScanError {
+    fn from(err: std::str::Utf8Error) -> Self {
+        ScanError::Other(err.to_string())
     }
 }
 
-// use std::fmt;
-use dns::{DnsInfo, HostInfo};
-// use page::PageInfo;
-
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Domain(String);
 
 impl Domain {
@@ -50,19 +79,19 @@ impl Domain {
         }
     }
 }
-// impl fmt::Display for Domain {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//             write!(f, "Domain({})", self.0)
-//     }
-// }
+impl fmt::Display for Domain {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct DomainInfo {
     domain: Domain,
     dns_info: DnsInfo,
     host_info: Option<HostInfo>,
-    ssl_info: Option<SslInfo>,
-    // front_page_info: Option<PageInfo>,
+    // ssl_info: Option<SslInfo>,
+    front_page_info: Option<PageInfo>,
     // mx_info: Option<MxInfo>,
     // whois_info: Option<WhoisInfo>,
 
@@ -78,8 +107,8 @@ impl DomainInfo {
             domain,
             dns_info,
             host_info: None,
-            ssl_info: None,
-            // front_page_info: None,
+            // ssl_info: None,
+            front_page_info: None,
             // mx_info: None,
             // whois_info: None,
             // crawl_info: None,
@@ -115,6 +144,16 @@ fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
     let ip = dns_info.ip;
     let mut domain_info = DomainInfo::from(Domain::clone(domain), dns_info);
     domain_info.host_info = HostInfo::from(&ip);
+    domain_info.front_page_info = match PageInfo::from(&domain, &domain_info.dns_info) {
+        Ok(page_info) => Some(page_info),
+        Err(err) => {
+            println!("{}", err);
+            None
+        }
+    };
+    // if let Ok(page_info) = PageInfo::from(&domain, &domain_info.dns_info) {
+    //     domain_info.front_page_info = Some(page_info);
+    // }
     Ok(domain_info)
     // if let Ok(dns_info) = DnsInfo::from(domain) {
     //     let ip = dns_info.ip;
