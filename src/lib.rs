@@ -147,7 +147,7 @@ fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
     domain_info.front_page_info = match PageInfo::from(&domain, &domain_info.dns_info) {
         Ok(page_info) => Some(page_info),
         Err(err) => {
-            println!("{}", err);
+            eprintln!("{}", err);
             None
         }
     };

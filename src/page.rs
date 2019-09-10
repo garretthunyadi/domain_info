@@ -11,11 +11,11 @@ use super::{DnsInfo, Domain, ScannerResult};
 use select::document::Document;
 use select::predicate::Name;
 
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::io::Read;
 use std::str;
 use std::time::{Duration, Instant};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct PageInfo {
@@ -74,7 +74,7 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     // println!("{}", now.elapsed().as_secs());
 
     let status_code = res.status().to_string();
-    println!("Status: {}", res.status());
+    //println!("Status: {}", res.status());
     if !res.status().is_success() {
         // TODO: failure
     }
@@ -106,7 +106,6 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     // } else {
     //     str::from_utf8(&body)?
     // };
-    
     let mut page_text = body_text(body);
     let language = language_for(&page_text);
     page_text.truncate(TEXT_SAMPLE_LENGTH);
@@ -141,6 +140,6 @@ fn body_text(html: &str) -> String {
 fn language_for(text: &str) -> String {
     match whatlang::detect(&text) {
         Some(info) => info.lang.to_code().to_string(),
-        None => "".to_string()
+        None => "".to_string(),
     }
 }
