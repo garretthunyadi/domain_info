@@ -1,6 +1,7 @@
 extern crate reqwest;
 mod dns;
 mod page;
+mod wappalyzer;
 
 use std::error::Error;
 use std::fmt;

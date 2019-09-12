@@ -1,8 +1,6 @@
 extern crate domain_info;
 extern crate reqwest;
 
-// use std::collections::HashMap;
-
 use domain_info::{Domain, Scanner};
 use std::env;
 
