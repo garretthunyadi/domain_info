@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Result, Value};
+// use serde_json::{json, Map, Result, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 
@@ -48,6 +49,12 @@ impl Site {
         }
     }
     pub fn check(&self) -> Vec<Tech> {
+        // for app in APPS_JSON_DATA {
+        //     app.check(self.html)
+        // }
+
+        let mut iter = APPS_JSON_DATA.apps.iter().filter(|(_name,&app)| app.check(&self.html));
+
         vec![Tech::named("webpack").unwrap()]
     }
 }
@@ -125,9 +132,13 @@ pub struct App {
 
 impl App {
     pub fn category_name(&self) -> String {
-        assert!(self.cats.len() > 0);
+        assert!(!self.cats.is_empty());
         APPS_JSON_DATA.category_name(self.cats[0]).unwrap()
     }
+    pub fn check(&self, html: &str) -> bool {
+        false
+        }
+
 }
 
 #[derive(Debug, Serialize, Deserialize)]
