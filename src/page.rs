@@ -12,6 +12,7 @@ use super::{DnsInfo, Domain, ScannerResult};
 // use select::predicate::Name;
 
 use super::wappalyzer;
+use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::str;
@@ -77,7 +78,9 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   if !res.status().is_success() {
     // TODO: failure
   }
-  // println!("Headers:\n{:#?}", res.headers());
+
+  let headers = res.headers().clone();
+  // println!("Headers:\n{:#?}", headers);
   // println!("Body:\n{}", body);
 
   // process headers
@@ -95,7 +98,7 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     str::from_utf8(&buffer)?
   };
 
-  let techs = wappalyze(&res, &body);
+  let techs = wappalyze(&headers, &body);
 
   let page_content = if body.len() > CONTENT_SAMPLE_LENGTH {
     body[0..CONTENT_SAMPLE_LENGTH].to_string()
@@ -191,8 +194,12 @@ fn language_for(text: &str) -> String {
   }
 }
 
-fn wappalyze(response: &reqwest::Response, body: &str) -> Vec<wappalyzer::Tech> {
-  wappalyzer::Site::new(body).check()
+// fn wappalyze(response: &reqwest::Response, body: &str) -> Vec<wappalyzer::Tech> {
+//   wappalyzer::Site::new(body).check()
+// }
+fn wappalyze(headers: &HeaderMap, body: &str) -> Vec<wappalyzer::Tech> {
+  // wappalyzer::Site::new(body).check()
+  wappalyzer::check(headers, body)
 }
 
 /*
