@@ -1,7 +1,11 @@
-use serde::{Deserialize, Serialize};
+use serde::de;
+use serde::{Deserialize, Deserializer, Serialize};
+// use serde_json::Value;
+
+use std::fmt;
+use std::marker::PhantomData;
 // use serde_json::{json, Map, Result, Value};
 use regex::Regex;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 
@@ -127,6 +131,9 @@ pub struct App {
     website: String,
     #[serde(default)]
     priority: i32,
+    #[serde(deserialize_with = "one_or_more_strings")]
+    #[serde(default)]
+    html: Vec<String>,
     #[serde(default)]
     headers: HashMap<String, String>,
     #[serde(default)]
@@ -139,12 +146,15 @@ pub struct App {
     meta: HashMap<String, String>,
     #[serde(default)]
     icon: String,
+    #[serde(deserialize_with = "one_or_more_strings")]
     #[serde(default)]
-    implies: Value,
+    implies: Vec<String>,
     #[serde(default)]
-    excludes: Value,
+    #[serde(deserialize_with = "one_or_more_strings")]
+    excludes: Vec<String>,
     #[serde(default)]
-    script: Value,
+    #[serde(deserialize_with = "one_or_more_strings")]
+    script: Vec<String>,
 }
 
 impl App {
@@ -170,11 +180,40 @@ impl App {
                 // println!("1. {:?}", value);
                 if let Ok(string_value) = value.to_str() {
                     if check_text(expected_value, string_value) {
-                        return true;
+                        eprintln!(
+                            "||| HEADER ({}) hit on: {}",
+                            header_to_check, expected_value
+                        );
+                        return true; // TODO: temp impletation that returns on any hit
                     }
                 }
             }
         }
+
+        // html
+        for maybe_regex in self.html.iter() {
+            if check_text(maybe_regex, html) {
+                eprintln!("||| HTML hit on: {}", maybe_regex);
+                return true; // TODO: temp impletation that returns on any hit
+            }
+        }
+
+        // cookies
+
+        // js
+        //         for (header_to_check, expected_value) in self.headers.iter() {
+        // if let Some(value) = headers.get(header_to_check) {
+        //     // println!("1. {:?}", value);
+        //     if let Ok(string_value) = value.to_str() {
+        //         if check_text(expected_value, string_value) {
+        //             return true;
+        //         }
+        //     }
+        // }
+
+        // meta
+
+        // check html
         false
     }
 }
@@ -256,4 +295,35 @@ mod tests {
         //     "<link "
         // ));
     }
+}
+
+fn one_or_more_strings<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct StringOrVec(PhantomData<Vec<String>>);
+
+    impl<'de> de::Visitor<'de> for StringOrVec {
+        type Value = Vec<String>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("string or list of strings")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(vec![value.to_owned()])
+        }
+
+        fn visit_seq<S>(self, visitor: S) -> Result<Self::Value, S::Error>
+        where
+            S: de::SeqAccess<'de>,
+        {
+            Deserialize::deserialize(de::value::SeqAccessDeserializer::new(visitor))
+        }
+    }
+
+    deserializer.deserialize_any(StringOrVec(PhantomData))
 }

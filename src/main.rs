@@ -17,3 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+// mod scratch;
+// fn main() {
+//     scratch::main();
+// }
