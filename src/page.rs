@@ -89,6 +89,16 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   //     println!("key/{}", key);
   // }
 
+  // for cookie in res.cookies() {
+  //   println!("COOKIE: {:?}",cookie.name());
+  // }
+  // panic!("fin.");
+  // let x = reqwest::header::SET_COOKIE;
+  // let cookies = match res.headers().get::<SetCookie>() {
+  //   Some(cookies) => cookies.join(","),
+  //   None => String::new(),
+  // };
+
   // process body
   let mut buffer = [0; MAX_HTML_LENGTH];
   let content_length = res.read(&mut buffer)? as usize;
@@ -98,7 +108,7 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     str::from_utf8(&buffer)?
   };
 
-  let techs = wappalyze(&headers, &body);
+  let techs = wappalyze(&res, &headers, &body);
 
   let page_content = if body.len() > CONTENT_SAMPLE_LENGTH {
     body[0..CONTENT_SAMPLE_LENGTH].to_string()
@@ -197,9 +207,13 @@ fn language_for(text: &str) -> String {
 // fn wappalyze(response: &reqwest::Response, body: &str) -> Vec<wappalyzer::Tech> {
 //   wappalyzer::Site::new(body).check()
 // }
-fn wappalyze(headers: &HeaderMap, body: &str) -> Vec<wappalyzer::Tech> {
+fn wappalyze(
+  response: &reqwest::Response,
+  headers: &HeaderMap,
+  body: &str,
+) -> Vec<wappalyzer::Tech> {
   // wappalyzer::Site::new(body).check()
-  wappalyzer::check(headers, body)
+  wappalyzer::check(response, headers, body)
 }
 
 /*
