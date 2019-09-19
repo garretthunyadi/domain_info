@@ -13,7 +13,9 @@ use super::{DnsInfo, Domain, ScannerResult};
 
 use super::wappalyzer;
 use reqwest::header::HeaderMap;
+use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::Read;
 use std::str;
 use std::time::{Duration, Instant};
@@ -71,49 +73,43 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   let now = Instant::now();
   let mut res = reqwest::get(&url)?;
   let load_time = now.elapsed();
-  // println!("{}", now.elapsed().as_secs());
 
   let status_code = res.status().to_string();
-  //println!("Status: {}", res.status());
   if !res.status().is_success() {
     // TODO: failure
   }
 
   let headers = res.headers().clone();
-  // println!("Headers:\n{:#?}", headers);
-  // println!("Body:\n{}", body);
-
-  // process headers
-  // let headers: &reqwest::header::HeaderMap = res.headers();
-  // for key in headers.keys() {
-  //     println!("key/{}", key);
-  // }
-
-  // for cookie in res.cookies() {
-  //   println!("COOKIE: {:?}",cookie.name());
-  // }
-  // panic!("fin.");
-  // let x = reqwest::header::SET_COOKIE;
-  // let cookies = match res.headers().get::<SetCookie>() {
-  //   Some(cookies) => cookies.join(","),
-  //   None => String::new(),
-  // };
 
   // process body
   let mut buffer = [0; MAX_HTML_LENGTH];
   let content_length = res.read(&mut buffer)? as usize;
-  let body = if content_length < MAX_HTML_LENGTH {
+  let html_string = if content_length < MAX_HTML_LENGTH {
     str::from_utf8(&buffer[0..content_length])?
   } else {
     str::from_utf8(&buffer)?
   };
 
-  let techs = wappalyze(&res, &headers, &body);
+  let parsed_html = Html::parse_fragment(html_string);
 
-  let page_content = if body.len() > CONTENT_SAMPLE_LENGTH {
-    body[0..CONTENT_SAMPLE_LENGTH].to_string()
+  let selector = Selector::parse("meta").unwrap();
+
+  // TODO: using a hashmap will not support two meta tags with the same name and different values,
+  // though I'm not sure if that's legal html.
+  let mut meta_tags = HashMap::new();
+  for meta in parsed_html.select(&selector) {
+    if let (Some(name), Some(content)) = (meta.value().attr("name"), meta.value().attr("content")) {
+      eprintln!("META {} -> {}", name, content);
+      meta_tags.insert(String::from(name), String::from(content));
+    }
+  }
+
+  let techs = wappalyze(&res, &headers, &meta_tags, &parsed_html, &html_string);
+
+  let page_content = if html_string.len() > CONTENT_SAMPLE_LENGTH {
+    html_string[0..CONTENT_SAMPLE_LENGTH].to_string()
   } else {
-    body.to_string()
+    html_string.to_string()
   };
   // let page_content = if body.len() > CONTENT_SAMPLE_LENGTH {
   //     str::from_utf8(&body[0..CONTENT_SAMPLE_LENGTH])?
@@ -123,7 +119,8 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
 
   // Headers(/Cookies), HTML(/Meta)
 
-  let mut page_text = body_text(body);
+  let mut page_text = body_text(html_string);
+
   let language = language_for(&page_text);
   page_text.truncate(TEXT_SAMPLE_LENGTH);
 
@@ -141,13 +138,11 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
 
 ///
 fn body_text(html: &str) -> String {
-  use scraper::{Html, Selector};
-
   // let fragment = Html::parse_fragment(html);
   // let document = Document::from(html);
 
   // // use scraper::{Html, Selector};
-  let fragment = Html::parse_fragment(html);
+  let parsed_html = Html::parse_fragment(html);
   // let selector = Selector::parse("body").unwrap();
 
   // let h1 = fragment.select(&selector).next().unwrap();
@@ -163,7 +158,7 @@ fn body_text(html: &str) -> String {
 
   // let root = fragment.root_element();
   let selector = Selector::parse("body").unwrap();
-  if let Some(body) = fragment.select(&selector).next() {
+  if let Some(body) = parsed_html.select(&selector).next() {
     body.text().collect::<Vec<_>>().join("|||||")
   } else {
     eprintln!("(no body tag found)");
@@ -210,10 +205,12 @@ fn language_for(text: &str) -> String {
 fn wappalyze(
   response: &reqwest::Response,
   headers: &HeaderMap,
+  meta_tags: &HashMap<String, String>,
+  parsed_html: &Html,
   body: &str,
 ) -> Vec<wappalyzer::Tech> {
   // wappalyzer::Site::new(body).check()
-  wappalyzer::check(response, headers, body)
+  wappalyzer::check(response, headers, meta_tags, parsed_html, body)
 }
 
 /*

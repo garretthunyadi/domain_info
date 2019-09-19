@@ -6,6 +6,7 @@ use std::fmt;
 use std::marker::PhantomData;
 // use serde_json::{json, Map, Result, Value};
 use regex::Regex;
+use scraper::{Html, Selector};
 use std::collections::HashMap;
 use std::fs;
 
@@ -14,12 +15,14 @@ extern crate lazy_static;
 pub fn check(
     response: &reqwest::Response,
     headers: &reqwest::header::HeaderMap,
+    meta_tags: &HashMap<String, String>,
+    parsed_html: &Html,
     body: &str,
 ) -> Vec<Tech> {
     APPS_JSON_DATA
         .apps
         .iter()
-        .filter_map(|(_name, app)| app.tech(response, headers, body))
+        .filter_map(|(_name, app)| app.tech(response, headers, meta_tags, parsed_html, body))
         .collect()
 }
 
@@ -172,9 +175,11 @@ impl App {
         &self,
         response: &reqwest::Response,
         headers: &reqwest::header::HeaderMap,
+        meta_tags: &HashMap<String, String>,
+        parsed_html: &Html,
         html: &str,
     ) -> Option<Tech> {
-        if self.check(response, headers, html) {
+        if self.check(response, headers, meta_tags, parsed_html, html) {
             Some(Tech::from(self))
         } else {
             None
@@ -186,6 +191,8 @@ impl App {
         &self,
         response: &reqwest::Response,
         headers: &reqwest::header::HeaderMap,
+        meta_tags: &HashMap<String, String>,
+        parsed_html: &Html,
         html: &str,
     ) -> bool {
         // check headers
@@ -226,7 +233,7 @@ impl App {
 
             // loop through and find the appropriate cookie
             if let Some(c) = response.cookies().find(|c| {
-                eprintln!("COOKIE: ({})==({})", c.name(), cookies_to_check);
+                // eprintln!("COOKIE: ({})==({})", c.name(), cookies_to_check);
                 c.name() == cookies_to_check
             }) {
                 // an empty expected_value means that we only care about the existence if the cookie
@@ -235,15 +242,6 @@ impl App {
                     return true; // TODO: Temp impl where one hit returns
                 }
             }
-
-            panic!("STOP");
-            // if check_text(expected_value, html) {
-            //     eprintln!(
-            //         "||| COOKIE ({}) hit on: {}",
-            //         cookies_to_check, expected_value
-            //     );
-            //     return true; // TODO: temp impletation that returns on any hit
-            // }
         }
 
         // js
@@ -257,7 +255,46 @@ impl App {
         //     }
         // }
 
+        for (js_to_check, expected_value) in self.js.iter() {
+            for js in parsed_html.select(&Selector::parse("script").unwrap()) {
+                if let Some(src) = js.value().attr("src") {
+                    if src == js_to_check {
+                        // if the expected_value is empty, then we are only looking for the presence of the js name
+                        if expected_value.is_empty() {
+                            return true; // TODO: Temp impl where one hit returns
+                        } else if check_text(expected_value, src) {
+                            eprintln!(
+                                "||| JS ({}) hit on: {} for value: {}",
+                                js_to_check, expected_value, src
+                            );
+                            return true; // TODO: Temp impl where one hit returns
+                        }
+                    }
+                }
+            }
+        }
+        // doc.Find("script").Each(func(i int, s *goquery.Selection) {
+        // 	if script, exists := s.Attr("src"); exists {
+        // 		if m, v := findMatches(script, app.ScriptRegex); len(m) > 0 {
+        // 			findings.Matches = append(findings.Matches, m...)
+        // 			findings.updateVersion(v)
+        // 		}
+        // 	}
+        // })
+
         // meta
+        for (meta_to_check, expected_value) in self.meta.iter() {
+            if let Some(value) = meta_tags.get(meta_to_check) {
+                // an empty expected_value means that we only care about the existence if the cookie
+                if check_text(expected_value, value) {
+                    eprintln!(
+                        "||| META ({}) hit on: {} for value: {}",
+                        meta_to_check, expected_value, value
+                    );
+                    return true; // TODO: Temp impl where one hit returns
+                }
+            }
+        }
 
         // check html
         false
@@ -272,20 +309,18 @@ struct Category {
 
 // The meat of the matter
 fn check_text(maybe_regex: &str, text: &str) -> bool {
-    // let re = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap();
+    // TODO: strignoring version stuff for now.
+    // TODO: Compile regex's in the initialization area.
+    let maybe_regex = String::from(maybe_regex);
+    let maybe_regex = maybe_regex.split("\\;").collect::<Vec<&str>>()[0];
     match Regex::new(maybe_regex) {
         Ok(re) => {
             // println!("REGEX IS FINE: [{}]", maybe_regex);
-
-            if re.is_match(text) {
-                // println!("MATCH! [{}] on text '{}'", maybe_regex, text);
-                true
-            } else {
-                false
-            }
+            re.is_match(text)
         }
         Err(err) => {
-            // println!("invalid regex in app.json '{}': {}", maybe_regex, err);
+            // eprintln!("invalid regex in app.json '{}': {}", maybe_regex, err);
+            // panic!("invalid regex in app.json '{}': {}", maybe_regex, err);
             false
         }
     }
@@ -332,6 +367,18 @@ mod tests {
             "cf\\.kampyle\\.com/k_button\\.js",
             "some cXf.kampyle.com/k_button.js"
         ));
+        assert!(check_text(
+            "optimizely\\.com.*\\.js",
+            "cdn.optimizely.com/js/711892001.js"
+        ));
+        assert!(!check_text(
+            "<link[^>]+?href=[^\"]/css/([\\d.]+)/bootstrap\\.(?:min\\.)?css\\;version:\\1",
+            "cdn.optimizely.com/js/711892001.js"
+        ));
+
+        //         invalid regex in app.json '<link[^>]+?href=[^"]/css/([\d.]+)/bootstrap\.(?:min\.)?css\;version:\1': regex parse error:
+        // <link[^>]+?href=[^"]/css/([\d.]+)/bootstrap\.(?:min\.)?css\;version:\1
+
         // assert!(!check_text(
         //     "<link[^>]*\\s+href=[^>]*styles/kendo\\.common(?:\\.min)?\\.css[^>]*/>",
         //     ""
@@ -528,4 +575,9 @@ where
 "Widgets/ShareThis"
 "Widgets/Twitter"
 
-*/
+"medfordroofers.com","JavaScriptLibraries/jQueryMigrate","WebServers/Nginx","PhotoGalleries/NextGENGallery","CMS/WordPress",
+   "SEO/YoastSEO","WebFrameworks/animate.css","WebFrameworks/Bootstrap","FontScripts/GoogleFontAPI","ProgrammingLanguages/PHP",
+   "Databases/MySQL","Miscellaneous/Revslider","FontScripts/FontAwesome","Analytics/GoogleAnalytics"
+
+"<link[^>]* href=[\\'\"][^']+revslider[/\\w-]+\\.css\\?ver=([0-9.]+)[\\'\"]\\;version:\\1"
+<link rel='stylesheet' id='rs-plugin-settings-css'  href='https://pricemyroof.com/wp-content/plugins/revslider/public/assets/css/settings.css?ver=5.4.8.2' type='text/css' media='all' />*/
