@@ -1,5 +1,6 @@
 extern crate reqwest;
 mod dns;
+mod mx;
 mod page;
 mod wappalyzer;
 
@@ -10,6 +11,7 @@ use std::error::Error;
 use std::fmt;
 // use std::fmt;
 use dns::{DnsInfo, HostInfo};
+use mx::MxInfo;
 use page::PageInfo;
 // use page::PageInfo;
 use serde::{Deserialize, Serialize};
@@ -96,7 +98,7 @@ pub struct DomainInfo {
     host_info: Option<HostInfo>,
     // ssl_info: Option<SslInfo>,
     front_page_info: Option<PageInfo>,
-    // mx_info: Option<MxInfo>,
+    mx_info: Option<MxInfo>,
     // whois_info: Option<WhoisInfo>,
 
     // crawl_info: Option<CrawlInfo>,
@@ -113,7 +115,7 @@ impl DomainInfo {
             host_info: None,
             // ssl_info: None,
             front_page_info: None,
-            // mx_info: None,
+            mx_info: None,
             // whois_info: None,
             // crawl_info: None,
             // screenshot_info: None,
@@ -129,8 +131,6 @@ impl DomainInfo {
 
 #[derive(Debug, PartialEq)]
 pub struct SslInfo {}
-#[derive(Debug, PartialEq)]
-pub struct MxInfo {}
 #[derive(Debug, PartialEq)]
 pub struct WhoisInfo {}
 
@@ -155,9 +155,12 @@ fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
             None
         }
     };
-    // if let Ok(page_info) = PageInfo::from(&domain, &domain_info.dns_info) {
-    //     domain_info.front_page_info = Some(page_info);
-    // }
+
+    if let Ok(mx_info) = MxInfo::from(domain) {
+        domain_info.mx_info = Some(mx_info);
+    }
+    
+
     Ok(domain_info)
     // if let Ok(dns_info) = DnsInfo::from(domain) {
     //     let ip = dns_info.ip;

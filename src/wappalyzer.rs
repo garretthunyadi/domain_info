@@ -318,7 +318,7 @@ fn check_text(maybe_regex: &str, text: &str) -> bool {
             // println!("REGEX IS FINE: [{}]", maybe_regex);
             re.is_match(text)
         }
-        Err(err) => {
+        Err(_) => {
             // eprintln!("invalid regex in app.json '{}': {}", maybe_regex, err);
             // panic!("invalid regex in app.json '{}': {}", maybe_regex, err);
             false
