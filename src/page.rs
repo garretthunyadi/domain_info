@@ -106,15 +106,11 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
 
   let techs = wappalyze(&res, &headers, &meta_tags, &parsed_html, &html_string);
 
-  let page_content = if html_string.len() > CONTENT_SAMPLE_LENGTH {
-    html_string[0..CONTENT_SAMPLE_LENGTH].to_string()
-  } else {
-    html_string.to_string()
-  };
-  // let page_content = if body.len() > CONTENT_SAMPLE_LENGTH {
-  //     str::from_utf8(&body[0..CONTENT_SAMPLE_LENGTH])?
+  let page_content = "".to_string();
+  // let page_content = if html_string.len() > CONTENT_SAMPLE_LENGTH {
+  //   html_string[0..CONTENT_SAMPLE_LENGTH].to_string()
   // } else {
-  //     str::from_utf8(&body)?
+  //   html_string.to_string()
   // };
 
   // Headers(/Cookies), HTML(/Meta)

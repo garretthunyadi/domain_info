@@ -159,17 +159,8 @@ fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
     if let Ok(mx_info) = MxInfo::from(domain) {
         domain_info.mx_info = Some(mx_info);
     }
-    
 
     Ok(domain_info)
-    // if let Ok(dns_info) = DnsInfo::from(domain) {
-    //     let ip = dns_info.ip;
-    //     let mut domain_info = DomainInfo::from(Domain::clone(domain), dns_info);
-    //     domain_info.host_info = HostInfo::from(&ip);
-    //     Ok(domain_info)
-    // } else {
-    //     Err()
-    // }
 }
 
 impl Scanner<DomainInfo> for Domain {

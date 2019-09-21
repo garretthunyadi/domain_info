@@ -244,35 +244,53 @@ impl App {
             }
         }
 
-        // js
-        //         for (header_to_check, expected_value) in self.headers.iter() {
-        // if let Some(value) = headers.get(header_to_check) {
-        //     // println!("1. {:?}", value);
-        //     if let Ok(string_value) = value.to_str() {
-        //         if check_text(expected_value, string_value) {
-        //             return true;
+        // try just checking for the js_to_check value, as (1) the js version seems to use the dom directly, and
+        // (2) the Go version doesn't seem to work
+        for (js_to_check, rule_value) in self.js.iter() {
+            eprintln!("js check for '{}'  / '{}']", js_to_check, rule_value);
+            // TODO: only parse the js once, instead of in the loop here.
+            for js in parsed_html.select(&Selector::parse("script").unwrap()) {
+                // eprintln!("\n==============\n{}\n", js.html());
+                if check_text(js_to_check, &js.html()) {
+                    eprintln!("||| JS hit on: {}", js_to_check);
+                    return true;
+                }
+                // if let Some(src) = js.value().attr("src") {
+                //     if src == js_to_check {
+                //         // if the expected_value is empty, then we are only looking for the presence of the js name
+                //         if expected_value.is_empty() {
+                //             return true; // TODO: Temp impl where one hit returns
+                //         } else if check_text(expected_value, src) {
+                //             eprintln!(
+                //                 "||| JS ({}) hit on: {} for value: {}",
+                //                 js_to_check, expected_value, src
+                //             );
+                //             return true; // TODO: Temp impl where one hit returns
+                //         }
+                //     }
+                // }
+            }
+        }
+
+        // for (js_to_check, expected_value) in self.js.iter() {
+        //     for js in parsed_html.select(&Selector::parse("script").unwrap()) {
+        //         if let Some(src) = js.value().attr("src") {
+        //             if src == js_to_check {
+        //                 // if the expected_value is empty, then we are only looking for the presence of the js name
+        //                 if expected_value.is_empty() {
+        //                     return true; // TODO: Temp impl where one hit returns
+        //                 } else if check_text(expected_value, src) {
+        //                     eprintln!(
+        //                         "||| JS ({}) hit on: {} for value: {}",
+        //                         js_to_check, expected_value, src
+        //                     );
+        //                     return true; // TODO: Temp impl where one hit returns
+        //                 }
+        //             }
         //         }
         //     }
         // }
 
-        for (js_to_check, expected_value) in self.js.iter() {
-            for js in parsed_html.select(&Selector::parse("script").unwrap()) {
-                if let Some(src) = js.value().attr("src") {
-                    if src == js_to_check {
-                        // if the expected_value is empty, then we are only looking for the presence of the js name
-                        if expected_value.is_empty() {
-                            return true; // TODO: Temp impl where one hit returns
-                        } else if check_text(expected_value, src) {
-                            eprintln!(
-                                "||| JS ({}) hit on: {} for value: {}",
-                                js_to_check, expected_value, src
-                            );
-                            return true; // TODO: Temp impl where one hit returns
-                        }
-                    }
-                }
-            }
-        }
         // doc.Find("script").Each(func(i int, s *goquery.Selection) {
         // 	if script, exists := s.Attr("src"); exists {
         // 		if m, v := findMatches(script, app.ScriptRegex); len(m) > 0 {
@@ -581,3 +599,203 @@ where
 
 "<link[^>]* href=[\\'\"][^']+revslider[/\\w-]+\\.css\\?ver=([0-9.]+)[\\'\"]\\;version:\\1"
 <link rel='stylesheet' id='rs-plugin-settings-css'  href='https://pricemyroof.com/wp-content/plugins/revslider/public/assets/css/settings.css?ver=5.4.8.2' type='text/css' media='all' />*/
+
+/*
+BBC:
+[] Optimizely
+        "Optimizely": {
+            "cats": [
+                10
+            ],
+            "icon": "Optimizely.png",
+            "js": {
+                "optimizely": ""
+            },
+            "script": "optimizely\\.com.*\\.js",
+            "website": "https://www.optimizely.com"
+        },
+
+[] AT Internet Analyzer
+        "AT Internet Analyzer": {
+            "cats": [
+                10
+            ],
+            "icon": "AT Internet.png",
+            "js": {
+                "ATInternet": "",
+                "xtsite": ""
+            },
+            "website": "http://atinternet.com/en"
+        },
+
+[] Chartbeat
+        "Chartbeat": {
+            "cats": [
+                10
+            ],
+            "icon": "Chartbeat.png",
+            "js": {
+                "_sf_async_config": "",
+                "_sf_endpt": ""
+            },
+            "script": "chartbeat\\.js",
+            "website": "http://chartbeat.com"
+        },
+
+[] Google Analytics
+         *******  maybe from an "implies" rule
+        "Google Analytics": {
+            "cats": [
+                10
+            ],
+            "cookies": {
+                "__utma": "",
+                "_ga": "",
+                "_gat": ""
+            },
+            "icon": "Google Analytics.svg",
+            "html": "<amp-analytics [^>]*type=[\"']googleanalytics[\"']",
+            "js": {
+                "GoogleAnalyticsObject": "",
+                "gaGlobal": ""
+            },
+            "script": "google-analytics\\.com\\/(?:ga|urchin|analytics)\\.js",
+            "website": "http://google.com/analytics"
+        },
+
+[] RequireJS2.3.2
+           "RequireJS": {
+            "cats": [
+                12
+            ],
+            "icon": "RequireJS.png",
+            "js": {
+                "requirejs.version": "^(.+)$\\;version:\\1"
+            },
+            "script": "require.*\\.js",
+            "website": "http://requirejs.org"
+        },
+
+[x] Apache
+        "Apache": {
+            "cats": [
+                22
+            ],
+            "headers": {
+                "Server": "(?:Apache(?:$|/([\\d.]+)|[^/-])|(?:^|\\b)HTTPD)\\;version:\\1"
+            },
+            "icon": "Apache.svg",
+            "website": "http://apache.org"
+        },
+
+[x] Varnish
+        "Varnish": {
+            "cats": [
+                23
+            ],
+            "headers": {
+                "Via": "varnish(?: \\(Varnish/([\\d.]+)\\))?\\;version:\\1",
+                "X-Varnish": "",
+                "X-Varnish-Action": "",
+                "X-Varnish-Age": "",
+                "X-Varnish-Cache": "",
+                "X-Varnish-Hostname": ""
+            },
+            "icon": "Varnish.svg",
+            "website": "http://www.varnish-cache.org"
+        },
+
+[] Google Tag Manager
+        "Google Tag Manager": {
+            "cats": [
+                42
+            ],
+            "html": [
+                "googletagmanager\\.com/ns\\.html[^>]+></iframe>",
+                "<!-- (?:End )?Google Tag Manager -->"
+            ],
+            "icon": "Google Tag Manager.png",
+            "js": {
+                "google_tag_manager": "",
+                "googletag": ""
+            },
+            "website": "http://www.google.com/tagmanager"
+        },
+
+[] Modernizr
+        "Modernizr": {
+            "cats": [
+                59
+            ],
+            "icon": "Modernizr.svg",
+            "js": {
+                "Modernizr._version": "^(.+)$\\;version:\\1"
+            },
+            "script": [
+                "([\\d.]+)?/modernizr(?:.([\\d.]+))?.*\\.js\\;version:\\1?\\1:\\2"
+            ],
+            "website": "https://modernizr.com"
+        },
+
+[] jQuery1.9.1
+        "jQuery": {
+            "cats": [
+                59
+            ],
+            "icon": "jQuery.svg",
+            "js": {
+                "jQuery.fn.jquery": "([\\d.]+)\\;version:\\1"
+            },
+            "script": [
+                "jquery[.-]([\\d.]*\\d)[^/]*\\.js\\;version:\\1",
+                "/([\\d.]+)/jquery(?:\\.min)?\\.js\\;version:\\1",
+                "jquery.*\\.js(?:\\?ver(?:sion)?=([\\d.]+))?\\;version:\\1"
+            ],
+            "website": "https://jquery.com"
+        },
+
+js:
+    AT Internet Analyzer
+    Chartbeat
+    Google Analytics
+    Google Tag Manager
+    jQuery1.9.1
+    Modernizr
+    Optimizely
+    RequireJS2.3.2
+    Apache
+    Varnish
+
+
+Go:
+  "techs": [
+ok    "JavaScriptFrameworks/RequireJS",
+ok    "JavaScriptLibraries/Modernizr",
+ok    "CacheTools/Varnish",
+XXX    "CMS/WordPress",
+XXX    "ProgrammingLanguages/PHP",
+XXX    "Databases/MySQL",
+ok    "WebServers/Apache",
+XXX    "JavaScriptFrameworks/React"
+  ],
+  Go misses:
+    - AT Internet Analyzer (though I don't see the refs in the static js, so this might be directly from the dom)
+    - Chartbeat
+    - Google Analytics
+    - Google Tag Manager
+    - jQuery1.9.1
+    - Optimizely
+
+  curr:
+      "techs": [
+      {
+        "category": "Cache Tools",
+        "name": "Varnish"
+      },
+      {
+        "category": "Web Servers",
+        "name": "Apache"
+      }
+    ],
+
+*/
