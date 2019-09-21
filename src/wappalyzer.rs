@@ -247,7 +247,7 @@ impl App {
         // try just checking for the js_to_check value, as (1) the js version seems to use the dom directly, and
         // (2) the Go version doesn't seem to work
         for (js_to_check, rule_value) in self.js.iter() {
-            eprintln!("js check for '{}'  / '{}']", js_to_check, rule_value);
+            // eprintln!("js check for '{}'  / '{}']", js_to_check, rule_value);
             // TODO: only parse the js once, instead of in the loop here.
             for js in parsed_html.select(&Selector::parse("script").unwrap()) {
                 // eprintln!("\n==============\n{}\n", js.html());

@@ -30,6 +30,10 @@ pub struct PageInfo {
   page_content: String,
   page_text: String,
   language: String,
+  iframe_count: usize,
+  image_count: usize,
+  form_count: usize,
+  script_count: usize,
   // headers: reqwest::header::HeaderMap,
 }
 
@@ -104,6 +108,11 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     }
   }
 
+  let iframe_count = count_selector(&parsed_html, "iframe");
+  let image_count = count_selector(&parsed_html, "img");
+  let form_count = count_selector(&parsed_html, "form");
+  let script_count = count_selector(&parsed_html, "script");
+
   let techs = wappalyze(&res, &headers, &meta_tags, &parsed_html, &html_string);
 
   let page_content = "".to_string();
@@ -129,7 +138,18 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     page_text,
     page_content,
     language,
+      iframe_count,
+  image_count,
+  form_count,
+  script_count,
+
   })
+}
+
+fn count_selector(parsed_html: &Html, selector: &str) -> usize {
+    parsed_html
+    .select(&Selector::parse(selector).unwrap())
+    .count()
 }
 
 ///
