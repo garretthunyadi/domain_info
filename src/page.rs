@@ -138,16 +138,15 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     page_text,
     page_content,
     language,
-      iframe_count,
-  image_count,
-  form_count,
-  script_count,
-
+    iframe_count,
+    image_count,
+    form_count,
+    script_count,
   })
 }
 
 fn count_selector(parsed_html: &Html, selector: &str) -> usize {
-    parsed_html
+  parsed_html
     .select(&Selector::parse(selector).unwrap())
     .count()
 }
