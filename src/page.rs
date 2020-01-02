@@ -1,5 +1,5 @@
 const MAX_HTML_LENGTH: usize = 5_000_000;
-const CONTENT_SAMPLE_LENGTH: usize = 5_000_000;
+// const CONTENT_SAMPLE_LENGTH: usize = 5_000_000;
 const TEXT_SAMPLE_LENGTH: usize = 5_000_000;
 
 extern crate reqwest;

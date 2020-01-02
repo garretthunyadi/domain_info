@@ -74,9 +74,6 @@ impl From<std::str::Utf8Error> for ScanError {
 pub struct Domain(String);
 
 impl Domain {
-    pub fn clone(d: &Domain) -> Domain {
-        Domain(String::from(&d.0))
-    }
     pub fn from(s: &str) -> ScannerResult<Domain> {
         if s.contains('.') {
             Ok(Domain(String::from(s.trim())))
@@ -85,6 +82,12 @@ impl Domain {
         }
     }
 }
+// impl Clone for Domain {
+//     pub fn clone(d: &Domain) -> Domain {
+//         Domain(String::from(&d.0))
+//     }
+// }
+
 impl fmt::Display for Domain {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -146,7 +149,7 @@ pub trait Scanner<Res> {
 fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
     let dns_info = DnsInfo::from(domain)?;
     let ip = dns_info.ip;
-    let mut domain_info = DomainInfo::from(Domain::clone(domain), dns_info);
+    let mut domain_info = DomainInfo::from(domain.clone(), dns_info);
     domain_info.host_info = HostInfo::from(&ip);
     domain_info.front_page_info = match PageInfo::from(&domain, &domain_info.dns_info) {
         Ok(page_info) => Some(page_info),
