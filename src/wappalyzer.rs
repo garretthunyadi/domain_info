@@ -13,8 +13,8 @@ use std::fs;
 extern crate lazy_static;
 
 pub fn check(
-    response: &reqwest::Response,
     headers: &reqwest::header::HeaderMap,
+    cookies: &[crate::Cookie],
     meta_tags: &HashMap<String, String>,
     parsed_html: &Html,
     body: &str,
@@ -22,7 +22,7 @@ pub fn check(
     APPS_JSON_DATA
         .apps
         .iter()
-        .filter_map(|(_name, app)| app.tech(response, headers, meta_tags, parsed_html, body))
+        .filter_map(|(_name, app)| app.tech(headers, cookies, meta_tags, parsed_html, body))
         .collect()
 }
 
@@ -173,13 +173,13 @@ impl App {
     // pub fn check_headers(&self,)
     pub fn tech(
         &self,
-        response: &reqwest::Response,
         headers: &reqwest::header::HeaderMap,
+        cookies: &[crate::Cookie],
         meta_tags: &HashMap<String, String>,
         parsed_html: &Html,
         html: &str,
     ) -> Option<Tech> {
-        if self.check(response, headers, meta_tags, parsed_html, html) {
+        if self.check(headers, cookies, meta_tags, parsed_html, html) {
             Some(Tech::from(self))
         } else {
             None
@@ -189,8 +189,8 @@ impl App {
     // TODO: initially only checking for one positive
     pub fn check(
         &self,
-        response: &reqwest::Response,
         headers: &reqwest::header::HeaderMap,
+        cookies: &[crate::Cookie],
         meta_tags: &HashMap<String, String>,
         parsed_html: &Html,
         html: &str,
@@ -232,13 +232,13 @@ impl App {
             // COOKIE: Cookie { cookie_string: Some("NID=188=E7jfAOxVZYeABbEwAi-4RN6pK1a-98zWM1hcFnt8bjHM_303Gon7qmJCopif_taWAwwNrpB9bcjQXn1Mm9gRzIagJSoLll4Wp0XHrPtBUMIXN58jCbdQFVEKAz1yJgyi_oxdG6NVYB2An8_RWmJ-EWp-6umHMMatZfxTAyE2-n8; expires=Thu, 19-Mar-2020 19:05:14 GMT; path=/; domain=.google.com; HttpOnly"), name: Indexed(0, 3), value: Indexed(4, 179), expires: Some(Tm { tm_sec: 14, tm_min: 5, tm_hour: 19, tm_mday: 19, tm_mon: 2, tm_year: 120, tm_wday: 4, tm_yday: 0, tm_isdst: 0, tm_utcoff: 0, tm_nsec: 0 }), max_age: None, domain: Some(Indexed(236, 246)), path: Some(Indexed(225, 226)), secure: None, http_only: Some(true), same_site: None }
 
             // loop through and find the appropriate cookie
-            if let Some(c) = response.cookies().find(|c| {
+            if let Some(c) = cookies.iter().find(|c| {
                 // eprintln!("COOKIE: ({})==({})", c.name(), cookies_to_check);
-                c.name() == cookies_to_check
+                c.name == *cookies_to_check
             }) {
                 // an empty expected_value means that we only care about the existence if the cookie
-                if expected_value.is_empty() || check_text(expected_value, c.value()) {
-                    eprintln!("||| COOKIE ({}) hit on: {}", c.value(), expected_value);
+                if expected_value.is_empty() || check_text(expected_value, &c.value) {
+                    eprintln!("||| COOKIE ({}) hit on: {}", c.value, expected_value);
                     return true; // TODO: Temp impl where one hit returns
                 }
             }

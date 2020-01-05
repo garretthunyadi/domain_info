@@ -126,6 +126,11 @@ impl DomainInfo {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct Cookie {
+    name: String,
+    value: String,
+}
 // impl fmt::Display for DomainInfo {
 //     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 //             write!(f, "({}, {:?})", self.domain, self.dns_info)
@@ -146,12 +151,13 @@ pub trait Scanner<Res> {
     fn scan(&self) -> ScannerResult<Res>;
 }
 
-fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
+async fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
     let dns_info = DnsInfo::from(domain)?;
     let ip = dns_info.ip;
     let mut domain_info = DomainInfo::from(domain.clone(), dns_info);
+
     domain_info.host_info = HostInfo::from(&ip);
-    domain_info.front_page_info = match PageInfo::from(&domain, &domain_info.dns_info) {
+    domain_info.front_page_info = match page::front_page_scan(domain).await {
         Ok(page_info) => Some(page_info),
         Err(err) => {
             eprintln!("{}", err);
@@ -168,7 +174,9 @@ fn domain_scan(domain: &Domain) -> ScannerResult<DomainInfo> {
 
 impl Scanner<DomainInfo> for Domain {
     fn scan(&self) -> ScannerResult<DomainInfo> {
-        domain_scan(self)
+        let fut = domain_scan(self);
+        use futures::executor::block_on;
+        block_on(fut)
     }
 }
 impl Scanner<DomainInfo> for str {

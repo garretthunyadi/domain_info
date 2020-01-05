@@ -16,7 +16,7 @@ use reqwest::header::HeaderMap;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::Read;
+// use std::io::Read;
 use std::str;
 use std::time::{Duration, Instant};
 
@@ -38,8 +38,8 @@ pub struct PageInfo {
 }
 
 impl PageInfo {
-  pub fn from(domain: &Domain, _: &DnsInfo) -> ScannerResult<PageInfo> {
-    front_page_scan(domain)
+  pub async fn from(domain: &Domain, _: &DnsInfo) -> ScannerResult<PageInfo> {
+    front_page_scan(domain).await
   }
 
   // pub fn cookies() -> ? {
@@ -72,10 +72,27 @@ impl PageInfo {
 // 	ErrorCode       string    `json:"error_code,omitempty"`
 // }
 
-fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
+pub async fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
+  // use std::io::Write;
+
   let url = format!("http://{}", domain.0);
   let now = Instant::now();
-  let mut res = reqwest::get(&url)?;
+
+  // let res = reqwest::Client::new().cookie_store(true).get(&url).await?;
+  let client = reqwest::Client::new();
+  let res = client.get(&url).send().await.unwrap();
+
+  let mut cookies = vec![];
+  {
+    let cs: std::vec::Vec<reqwest::cookie::Cookie<'_>> = res.cookies().collect::<Vec<_>>();
+    for c in cs {
+      cookies.push(crate::Cookie {
+        name: String::from(c.name()),
+        value: String::from(c.value()),
+      });
+    }
+  }
+  // let res = reqwest::get(&url).await?;
   let load_time = now.elapsed();
 
   let status_code = res.status().to_string();
@@ -86,15 +103,17 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   let headers = res.headers().clone();
 
   // process body
-  let mut buffer = [0; MAX_HTML_LENGTH];
-  let content_length = res.read(&mut buffer)? as usize;
-  let html_string = if content_length < MAX_HTML_LENGTH {
-    str::from_utf8(&buffer[0..content_length])?
-  } else {
-    str::from_utf8(&buffer)?
-  };
+  // let mut buffer = [0; MAX_HTML_LENGTH];
+  let html_string = res.text().await?;
+  let content_length = html_string.len();
+  // let content_length = res.read(&mut buffer)? as usize;
+  // let html_string = if content_length < MAX_HTML_LENGTH {
+  //   str::from_utf8(&buffer[0..content_length])?
+  // } else {
+  //   str::from_utf8(&buffer)?
+  // };
 
-  let parsed_html = Html::parse_fragment(html_string);
+  let parsed_html = Html::parse_fragment(&html_string);
 
   let selector = Selector::parse("meta").unwrap();
 
@@ -113,7 +132,7 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   let form_count = count_selector(&parsed_html, "form");
   let script_count = count_selector(&parsed_html, "script");
 
-  let techs = wappalyze(&res, &headers, &meta_tags, &parsed_html, &html_string);
+  let techs = wappalyze(&headers, &cookies, &meta_tags, &parsed_html, &html_string);
 
   let page_content = "".to_string();
   // let page_content = if html_string.len() > CONTENT_SAMPLE_LENGTH {
@@ -124,7 +143,7 @@ fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
 
   // Headers(/Cookies), HTML(/Meta)
 
-  let mut page_text = body_text(html_string);
+  let mut page_text = body_text(&html_string);
 
   let language = language_for(&page_text);
   page_text.truncate(TEXT_SAMPLE_LENGTH);
@@ -218,14 +237,14 @@ fn language_for(text: &str) -> String {
 //   wappalyzer::Site::new(body).check()
 // }
 fn wappalyze(
-  response: &reqwest::Response,
   headers: &HeaderMap,
+  cookies: &[crate::Cookie],
   meta_tags: &HashMap<String, String>,
   parsed_html: &Html,
   body: &str,
 ) -> Vec<wappalyzer::Tech> {
   // wappalyzer::Site::new(body).check()
-  wappalyzer::check(response, headers, meta_tags, parsed_html, body)
+  wappalyzer::check(headers, cookies, meta_tags, parsed_html, body)
 }
 
 /*
