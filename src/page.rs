@@ -132,7 +132,7 @@ pub async fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   let form_count = count_selector(&parsed_html, "form");
   let script_count = count_selector(&parsed_html, "script");
 
-  let techs = wappalyze(&headers, &cookies, &meta_tags, &parsed_html, &html_string);
+  let techs = wappalyze(&headers, &cookies, &meta_tags, &parsed_html, &html_string).await;
 
   let page_content = "".to_string();
   // let page_content = if html_string.len() > CONTENT_SAMPLE_LENGTH {
@@ -236,7 +236,7 @@ fn language_for(text: &str) -> String {
 // fn wappalyze(response: &reqwest::Response, body: &str) -> Vec<wappalyzer::Tech> {
 //   wappalyzer::Site::new(body).check()
 // }
-fn wappalyze(
+async fn wappalyze(
   headers: &HeaderMap,
   cookies: &[crate::Cookie],
   meta_tags: &HashMap<String, String>,
@@ -244,7 +244,7 @@ fn wappalyze(
   body: &str,
 ) -> Vec<wappalyzer::Tech> {
   // wappalyzer::Site::new(body).check()
-  wappalyzer::check(headers, cookies, meta_tags, parsed_html, body)
+  wappalyzer::check(headers, cookies, meta_tags, parsed_html, body).await
 }
 
 /*

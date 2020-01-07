@@ -5,6 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 use std::marker::PhantomData;
 // use serde_json::{json, Map, Result, Value};
+use futures::future::join_all;
 use regex::Regex;
 use scraper::{Html, Selector};
 use std::collections::HashMap;
@@ -12,18 +13,34 @@ use std::fs;
 
 extern crate lazy_static;
 
-pub fn check(
+pub async fn check(
     headers: &reqwest::header::HeaderMap,
     cookies: &[crate::Cookie],
     meta_tags: &HashMap<String, String>,
     parsed_html: &Html,
     body: &str,
 ) -> Vec<Tech> {
-    APPS_JSON_DATA
-        .apps
+    let mut futures: Vec<tokio::task::JoinHandle<Option<Tech>>> = vec![];
+    // for (_name, app) in &APPS_JSON_DATA.apps {
+    for app in APPS_JSON_DATA.apps.values() {
+        // futures.push(app.tech(headers, cookies, meta_tags, parsed_html, body));
+        futures.push(app.tech_tokio(headers));
+    }
+
+    // let futures: tokio::task::JoinHandle<Vec<Tech>> = APPS_JSON_DATA
+    //     .apps
+    //     .iter()
+    //     .map(|(_name, app)| app.tech(headers, cookies, meta_tags, parsed_html, body))
+    //     // .filter_map(|(_name, app)| app.tech(headers, cookies, meta_tags, parsed_html, body))
+    //     // .collect();
+    join_all(futures)
+        .await
         .iter()
-        .filter_map(|(_name, app)| app.tech(headers, cookies, meta_tags, parsed_html, body))
-        .collect()
+        .filter_map(|r| r.as_ref().ok())
+        // .map(|r| String::from(r.as_ref().unwrap()))
+        // .map(|r| Tech::from(r.as_ref().unwrap()))
+        .map(|r| r.as_ref().unwrap().to_owned())
+        .collect::<Vec<_>>()
 }
 
 lazy_static! {
@@ -87,7 +104,7 @@ lazy_static! {
 //     }
 // }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Tech {
     category: String,
     name: String,
@@ -171,7 +188,7 @@ impl App {
     }
 
     // pub fn check_headers(&self,)
-    pub fn tech(
+    pub async fn tech(
         &self,
         headers: &reqwest::header::HeaderMap,
         cookies: &[crate::Cookie],
@@ -185,6 +202,25 @@ impl App {
             None
         }
     }
+
+    pub fn tech_tokio(
+        &self,
+        headers: &reqwest::header::HeaderMap,
+    ) -> tokio::task::JoinHandle<Option<Tech>> {
+        let tech = Tech::from(self);
+        tokio::spawn(async move {
+            if headers.len() > 0 {
+                //TEMP/ BOGUS conditianal
+                Some(tech)
+            } else {
+                None
+            }
+        })
+    }
+
+    // pub async fn tech_future(&self) -> Option<Tech> {
+    //     Some(Tech::from(self))
+    // }
 
     // TODO: initially only checking for one positive
     pub fn check(
