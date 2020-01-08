@@ -54,7 +54,8 @@ pub struct RawData {
   pub headers: reqwest::header::HeaderMap,
   pub cookies: Vec<crate::Cookie>,
   pub meta_tags: HashMap<String, String>,
-  // parsed_html: Html,
+  pub script_tags: Vec<String>,
+  // pub parsed_html: Html,
   pub html: String,
 }
 
@@ -128,6 +129,12 @@ pub async fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
 
   let selector = Selector::parse("meta").unwrap();
 
+  let mut script_tags = vec![];
+  for js in parsed_html.select(&Selector::parse("script").unwrap()) {
+    // eprintln!("\n==============\n{}\n", js.html());
+    script_tags.push(js.html());
+  }
+
   // TODO: using a hashmap will not support two meta tags with the same name and different values,
   // though I'm not sure if that's legal html.
   let mut meta_tags = HashMap::new();
@@ -148,23 +155,11 @@ pub async fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
     cookies,
     meta_tags,
     // parsed_html,
+    script_tags,
     html: html_string.clone(),
   });
-  // let header_arc = Arc::new(headers);
-  // let cookies_arc = Arc::new(cookies);
-  // let meta_tags_arc = Arc::new(meta_tags);
-  // let parsed_html_arc = Arc::new(parsed_html);
-  // let html_string_arc = Arc::new(html_string);
 
-  let techs = wappalyze(
-    raw_data,
-    // header_arc.clone(),
-    // cookies_arc.clone(),
-    // meta_tags_arc.clone(),
-    // parsed_html_arc.clone(),
-    // html_string_arc.clone(),
-  )
-  .await;
+  let techs = wappalyze(raw_data).await;
 
   let page_content = "".to_string();
   // let page_content = if html_string.len() > CONTENT_SAMPLE_LENGTH {

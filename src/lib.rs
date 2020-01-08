@@ -71,7 +71,7 @@ impl From<std::str::Utf8Error> for ScanError {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Domain(String);
+pub struct Domain(pub String);
 
 impl Domain {
     pub fn from(s: &str) -> ScannerResult<Domain> {
@@ -82,6 +82,7 @@ impl Domain {
         }
     }
 }
+
 // impl Clone for Domain {
 //     pub fn clone(d: &Domain) -> Domain {
 //         Domain(String::from(&d.0))

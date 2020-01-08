@@ -17,43 +17,20 @@ use std::sync::Arc;
 
 extern crate lazy_static;
 
-pub async fn check(
-    raw_data: Arc<page::RawData>,
-    // headers: Arc<HeaderMap>,
-    // cookies: &[crate::Cookie],
-    // cookies: Arc<Vec<Cookie>>,
-    // meta_tags: Arc<HashMap<String, String>>,
-    // parsed_html: Arc<Html>,
-    // body: Arc<String>,
-) -> Vec<Tech> {
+pub async fn check(raw_data: Arc<page::RawData>) -> Vec<Tech> {
     let mut futures: Vec<tokio::task::JoinHandle<Option<Tech>>> = vec![];
 
     // for (_name, app) in &APPS_JSON_DATA.apps {
     for app in APPS_JSON_DATA.apps.values() {
         // futures.push(app.tech(headers, cookies, meta_tags, parsed_html, body));
-        futures.push(app.tech_tokio(
-            raw_data.clone(),
-            // headers.clone(),
-            // cookies.clone(),
-            // meta_tags.clone(),
-            // parsed_html.clone(),
-            // body.clone(),
-        ));
+        futures.push(app.tech_tokio(raw_data.clone()));
     }
 
-    // let futures: tokio::task::JoinHandle<Vec<Tech>> = APPS_JSON_DATA
-    //     .apps
-    //     .iter()
-    //     .map(|(_name, app)| app.tech(headers, cookies, meta_tags, parsed_html, body))
-    //     // .filter_map(|(_name, app)| app.tech(headers, cookies, meta_tags, parsed_html, body))
-    //     // .collect();
     join_all(futures)
         .await
         .iter()
         .filter_map(|r| r.as_ref().ok())
         .filter(|o| o.is_some())
-        // .map(|r| String::from(r.as_ref().unwrap()))
-        // .map(|r| Tech::from(r.as_ref().unwrap()))
         .map(|r| r.as_ref().unwrap().to_owned())
         .collect::<Vec<_>>()
 }
@@ -62,62 +39,16 @@ lazy_static! {
     static ref APPS_JSON_DATA: AppsJsonData = {
         let apps_json = fs::read_to_string("./apps.json")
             .expect("Something went wrong reading the apps.json file");
-        let mut apps_json_data:AppsJsonData = serde_json::from_str(&apps_json).expect("Error loading the apps.json file");
+        let mut apps_json_data: AppsJsonData =
+            serde_json::from_str(&apps_json).expect("Error loading the apps.json file");
 
-        // for (app_name,&mut app) in &apps_json_data.apps.iter_mut() {
-        //     app.
-        // }
         for (app_name, app) in apps_json_data.apps.iter_mut() {
             (*app).name = String::from(app_name);
         }
 
         apps_json_data
     };
-    // static ref APP_NAME_LOOKUP: HashMap<App,String> = {
-    //     let mut app_name_lookup:HashMap<App,&str> = HashMap::new();
-    //     for (app_name,app) in &APPS.apps {
-    //         app_name_lookup.insert(app, app_name);
-    //     }
-    //     app_name_lookup
-    // };
-    // static ref TECHS: Vec<Tech> = {
-    //     let mut techs:Vec<Tech> = vec![];
-    //     for (app_name,app) in &APPS_JSON_DATA.apps {
-    //         techs.push(Tech{name:String::from(app_name), category:app.category_name()})
-    //     }
-    //     techs
-    // };
 }
-
-// pub struct Site {
-//     html: String,
-// }
-
-// impl Site {
-//     pub fn new(html: &str) -> Site {
-//         Site {
-//             html: String::from(html),
-//         }
-//     }
-//     pub fn check(&self) -> Vec<Tech> {
-//         // let mut techs = vec![];
-//         // for (_name, app) in APPS_JSON_DATA.apps.iter() {
-//         //     if let Some(tech) = app.tech(&self.html) {
-//         //         techs.push(tech);
-//         //     }
-//         // }
-
-//         APPS_JSON_DATA
-//             .apps
-//             .iter()
-//             .filter_map(|(_name, app)| app.tech(&self.html))
-//             .collect()
-//         // let mut iter = a.iter().filter_map(|s| s.parse().ok());
-
-//         // vec![Tech::named("webpack").unwrap()]
-//         // techs
-//     }
-// }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Tech {
@@ -221,23 +152,9 @@ impl App {
     pub fn tech_tokio(
         &'static self,
         raw_data: Arc<page::RawData>,
-        // headers: Arc<reqwest::header::HeaderMap>,
-        // cookies: Arc<Vec<Cookie>>,
-        // meta_tags: Arc<HashMap<String, String>>,
-        // parsed_html: Arc<Html>,
-        // body: Arc<String>,
     ) -> tokio::task::JoinHandle<Option<Tech>> {
-        let tech = Tech::from(self);
-
         tokio::spawn(async move {
-            if self.check(
-                raw_data.clone(),
-                // headers.clone(),
-                // cookies.clone(),
-                // meta_tags.clone(),
-                // parsed_html.clone(),
-                // body.clone(),
-            ) {
+            if self.check(raw_data.clone()) {
                 Some(Tech::from(self))
             } else {
                 None
@@ -245,20 +162,8 @@ impl App {
         })
     }
 
-    // pub async fn tech_future(&self) -> Option<Tech> {
-    //     Some(Tech::from(self))
-    // }
-
     // TODO: initially only checking for one positive
-    pub fn check(
-        &self,
-        raw_data: Arc<page::RawData>,
-        // headers: Arc<reqwest::header::HeaderMap>,
-        // cookies: Arc<Vec<Cookie>>,
-        // meta_tags: Arc<HashMap<String, String>>,
-        // parsed_html: Arc<Html>,
-        // html: Arc<String>,
-    ) -> bool {
+    pub fn check(&self, raw_data: Arc<page::RawData>) -> bool {
         // check headers
         for (header_to_check, expected_value) in self.headers.iter() {
             if let Some(value) = raw_data.headers.get(header_to_check) {
@@ -310,20 +215,14 @@ impl App {
 
         // try just checking for the js_to_check value, as (1) the js version seems to use the dom directly, and
         // (2) the Go version doesn't seem to work
-        // for (js_to_check, _rule_value) in self.js.iter() {
-        //     // eprintln!("js check for '{}'  / '{}']", js_to_check, rule_value);
-        //     // TODO: only parse the js once, instead of in the loop here.
-        //     for js in raw_data
-        //         .parsed_html
-        //         .select(&Selector::parse("script").unwrap())
-        //     {
-        //         // eprintln!("\n==============\n{}\n", js.html());
-        //         if check_text(js_to_check, &js.html()) {
-        //             eprintln!("||| JS hit on: {}", js_to_check);
-        //             return true;
-        //         }
-        //     }
-        // }
+        for (js_to_check, _rule_value) in self.js.iter() {
+            for js in &raw_data.script_tags {
+                if check_text(js_to_check, js) {
+                    eprintln!("||| JS hit on: {}", js_to_check);
+                    return true;
+                }
+            }
+        }
 
         // meta
         for (meta_to_check, expected_value) in self.meta.iter() {
