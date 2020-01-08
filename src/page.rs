@@ -17,7 +17,9 @@ use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 // use std::io::Read;
+use crate::Cookie;
 use std::str;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -45,6 +47,15 @@ impl PageInfo {
   // pub fn cookies() -> ? {
 
   // }
+}
+
+// the base data that is used to analyze the page
+pub struct RawData {
+  pub headers: reqwest::header::HeaderMap,
+  pub cookies: Vec<crate::Cookie>,
+  pub meta_tags: HashMap<String, String>,
+  // parsed_html: Html,
+  pub html: String,
 }
 
 // type ScanResult struct {
@@ -132,7 +143,28 @@ pub async fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   let form_count = count_selector(&parsed_html, "form");
   let script_count = count_selector(&parsed_html, "script");
 
-  let techs = wappalyze(&headers, &cookies, &meta_tags, &parsed_html, &html_string).await;
+  let raw_data = Arc::new(RawData {
+    headers,
+    cookies,
+    meta_tags,
+    // parsed_html,
+    html: html_string.clone(),
+  });
+  // let header_arc = Arc::new(headers);
+  // let cookies_arc = Arc::new(cookies);
+  // let meta_tags_arc = Arc::new(meta_tags);
+  // let parsed_html_arc = Arc::new(parsed_html);
+  // let html_string_arc = Arc::new(html_string);
+
+  let techs = wappalyze(
+    raw_data,
+    // header_arc.clone(),
+    // cookies_arc.clone(),
+    // meta_tags_arc.clone(),
+    // parsed_html_arc.clone(),
+    // html_string_arc.clone(),
+  )
+  .await;
 
   let page_content = "".to_string();
   // let page_content = if html_string.len() > CONTENT_SAMPLE_LENGTH {
@@ -237,14 +269,16 @@ fn language_for(text: &str) -> String {
 //   wappalyzer::Site::new(body).check()
 // }
 async fn wappalyze(
-  headers: &HeaderMap,
-  cookies: &[crate::Cookie],
-  meta_tags: &HashMap<String, String>,
-  parsed_html: &Html,
-  body: &str,
+  raw_data: Arc<RawData>,
+  // headers: Arc<HeaderMap>,
+  // cookies: Arc<Vec<Cookie>>,
+  // meta_tags: Arc<HashMap<String, String>>,
+  // parsed_html: Arc<Html>,
+  // body: Arc<String>,
 ) -> Vec<wappalyzer::Tech> {
   // wappalyzer::Site::new(body).check()
-  wappalyzer::check(headers, cookies, meta_tags, parsed_html, body).await
+  // wappalyzer::check(raw_data, headers, cookies, meta_tags, parsed_html, body).await
+  wappalyzer::check(raw_data).await
 }
 
 /*

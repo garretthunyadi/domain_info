@@ -5,26 +5,40 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 use std::marker::PhantomData;
 // use serde_json::{json, Map, Result, Value};
+use crate::page;
+use crate::Cookie;
 use futures::future::join_all;
 use regex::Regex;
+use reqwest::header::HeaderMap;
 use scraper::{Html, Selector};
 use std::collections::HashMap;
 use std::fs;
+use std::sync::Arc;
 
 extern crate lazy_static;
 
 pub async fn check(
-    headers: &reqwest::header::HeaderMap,
-    cookies: &[crate::Cookie],
-    meta_tags: &HashMap<String, String>,
-    parsed_html: &Html,
-    body: &str,
+    raw_data: Arc<page::RawData>,
+    // headers: Arc<HeaderMap>,
+    // cookies: &[crate::Cookie],
+    // cookies: Arc<Vec<Cookie>>,
+    // meta_tags: Arc<HashMap<String, String>>,
+    // parsed_html: Arc<Html>,
+    // body: Arc<String>,
 ) -> Vec<Tech> {
     let mut futures: Vec<tokio::task::JoinHandle<Option<Tech>>> = vec![];
+
     // for (_name, app) in &APPS_JSON_DATA.apps {
     for app in APPS_JSON_DATA.apps.values() {
         // futures.push(app.tech(headers, cookies, meta_tags, parsed_html, body));
-        futures.push(app.tech_tokio(headers));
+        futures.push(app.tech_tokio(
+            raw_data.clone(),
+            // headers.clone(),
+            // cookies.clone(),
+            // meta_tags.clone(),
+            // parsed_html.clone(),
+            // body.clone(),
+        ));
     }
 
     // let futures: tokio::task::JoinHandle<Vec<Tech>> = APPS_JSON_DATA
@@ -37,6 +51,7 @@ pub async fn check(
         .await
         .iter()
         .filter_map(|r| r.as_ref().ok())
+        .filter(|o| o.is_some())
         // .map(|r| String::from(r.as_ref().unwrap()))
         // .map(|r| Tech::from(r.as_ref().unwrap()))
         .map(|r| r.as_ref().unwrap().to_owned())
@@ -188,30 +203,42 @@ impl App {
     }
 
     // pub fn check_headers(&self,)
-    pub async fn tech(
-        &self,
-        headers: &reqwest::header::HeaderMap,
-        cookies: &[crate::Cookie],
-        meta_tags: &HashMap<String, String>,
-        parsed_html: &Html,
-        html: &str,
-    ) -> Option<Tech> {
-        if self.check(headers, cookies, meta_tags, parsed_html, html) {
-            Some(Tech::from(self))
-        } else {
-            None
-        }
-    }
+    // pub async fn tech(
+    //     &self,
+    //     headers: &reqwest::header::HeaderMap,
+    //     cookies: &[crate::Cookie],
+    //     meta_tags: &HashMap<String, String>,
+    //     parsed_html: &Html,
+    //     html: &str,
+    // ) -> Option<Tech> {
+    //     if self.check(headers.clone(), cookies.clone(), meta_tags.clone(), html.clone()) {
+    //         Some(Tech::from(self))
+    //     } else {
+    //         None
+    //     }
+    // }
 
     pub fn tech_tokio(
-        &self,
-        headers: &reqwest::header::HeaderMap,
+        &'static self,
+        raw_data: Arc<page::RawData>,
+        // headers: Arc<reqwest::header::HeaderMap>,
+        // cookies: Arc<Vec<Cookie>>,
+        // meta_tags: Arc<HashMap<String, String>>,
+        // parsed_html: Arc<Html>,
+        // body: Arc<String>,
     ) -> tokio::task::JoinHandle<Option<Tech>> {
         let tech = Tech::from(self);
+
         tokio::spawn(async move {
-            if headers.len() > 0 {
-                //TEMP/ BOGUS conditianal
-                Some(tech)
+            if self.check(
+                raw_data.clone(),
+                // headers.clone(),
+                // cookies.clone(),
+                // meta_tags.clone(),
+                // parsed_html.clone(),
+                // body.clone(),
+            ) {
+                Some(Tech::from(self))
             } else {
                 None
             }
@@ -225,15 +252,16 @@ impl App {
     // TODO: initially only checking for one positive
     pub fn check(
         &self,
-        headers: &reqwest::header::HeaderMap,
-        cookies: &[crate::Cookie],
-        meta_tags: &HashMap<String, String>,
-        parsed_html: &Html,
-        html: &str,
+        raw_data: Arc<page::RawData>,
+        // headers: Arc<reqwest::header::HeaderMap>,
+        // cookies: Arc<Vec<Cookie>>,
+        // meta_tags: Arc<HashMap<String, String>>,
+        // parsed_html: Arc<Html>,
+        // html: Arc<String>,
     ) -> bool {
         // check headers
         for (header_to_check, expected_value) in self.headers.iter() {
-            if let Some(value) = headers.get(header_to_check) {
+            if let Some(value) = raw_data.headers.get(header_to_check) {
                 // println!("1. {:?}", value);
                 if let Ok(string_value) = value.to_str() {
                     if check_text(expected_value, string_value) {
@@ -249,7 +277,7 @@ impl App {
 
         // html
         for maybe_regex in self.html.iter() {
-            if check_text(maybe_regex, html) {
+            if check_text(maybe_regex, &raw_data.html) {
                 eprintln!("||| HTML hit on: {}", maybe_regex);
                 return true; // TODO: temp impletation that returns on any hit
             }
@@ -268,7 +296,7 @@ impl App {
             // COOKIE: Cookie { cookie_string: Some("NID=188=E7jfAOxVZYeABbEwAi-4RN6pK1a-98zWM1hcFnt8bjHM_303Gon7qmJCopif_taWAwwNrpB9bcjQXn1Mm9gRzIagJSoLll4Wp0XHrPtBUMIXN58jCbdQFVEKAz1yJgyi_oxdG6NVYB2An8_RWmJ-EWp-6umHMMatZfxTAyE2-n8; expires=Thu, 19-Mar-2020 19:05:14 GMT; path=/; domain=.google.com; HttpOnly"), name: Indexed(0, 3), value: Indexed(4, 179), expires: Some(Tm { tm_sec: 14, tm_min: 5, tm_hour: 19, tm_mday: 19, tm_mon: 2, tm_year: 120, tm_wday: 4, tm_yday: 0, tm_isdst: 0, tm_utcoff: 0, tm_nsec: 0 }), max_age: None, domain: Some(Indexed(236, 246)), path: Some(Indexed(225, 226)), secure: None, http_only: Some(true), same_site: None }
 
             // loop through and find the appropriate cookie
-            if let Some(c) = cookies.iter().find(|c| {
+            if let Some(c) = raw_data.cookies.iter().find(|c| {
                 // eprintln!("COOKIE: ({})==({})", c.name(), cookies_to_check);
                 c.name == *cookies_to_check
             }) {
@@ -282,63 +310,24 @@ impl App {
 
         // try just checking for the js_to_check value, as (1) the js version seems to use the dom directly, and
         // (2) the Go version doesn't seem to work
-        for (js_to_check, _rule_value) in self.js.iter() {
-            // eprintln!("js check for '{}'  / '{}']", js_to_check, rule_value);
-            // TODO: only parse the js once, instead of in the loop here.
-            for js in parsed_html.select(&Selector::parse("script").unwrap()) {
-                // eprintln!("\n==============\n{}\n", js.html());
-                if check_text(js_to_check, &js.html()) {
-                    eprintln!("||| JS hit on: {}", js_to_check);
-                    return true;
-                }
-                // if let Some(src) = js.value().attr("src") {
-                //     if src == js_to_check {
-                //         // if the expected_value is empty, then we are only looking for the presence of the js name
-                //         if expected_value.is_empty() {
-                //             return true; // TODO: Temp impl where one hit returns
-                //         } else if check_text(expected_value, src) {
-                //             eprintln!(
-                //                 "||| JS ({}) hit on: {} for value: {}",
-                //                 js_to_check, expected_value, src
-                //             );
-                //             return true; // TODO: Temp impl where one hit returns
-                //         }
-                //     }
-                // }
-            }
-        }
-
-        // for (js_to_check, expected_value) in self.js.iter() {
-        //     for js in parsed_html.select(&Selector::parse("script").unwrap()) {
-        //         if let Some(src) = js.value().attr("src") {
-        //             if src == js_to_check {
-        //                 // if the expected_value is empty, then we are only looking for the presence of the js name
-        //                 if expected_value.is_empty() {
-        //                     return true; // TODO: Temp impl where one hit returns
-        //                 } else if check_text(expected_value, src) {
-        //                     eprintln!(
-        //                         "||| JS ({}) hit on: {} for value: {}",
-        //                         js_to_check, expected_value, src
-        //                     );
-        //                     return true; // TODO: Temp impl where one hit returns
-        //                 }
-        //             }
+        // for (js_to_check, _rule_value) in self.js.iter() {
+        //     // eprintln!("js check for '{}'  / '{}']", js_to_check, rule_value);
+        //     // TODO: only parse the js once, instead of in the loop here.
+        //     for js in raw_data
+        //         .parsed_html
+        //         .select(&Selector::parse("script").unwrap())
+        //     {
+        //         // eprintln!("\n==============\n{}\n", js.html());
+        //         if check_text(js_to_check, &js.html()) {
+        //             eprintln!("||| JS hit on: {}", js_to_check);
+        //             return true;
         //         }
         //     }
         // }
 
-        // doc.Find("script").Each(func(i int, s *goquery.Selection) {
-        // 	if script, exists := s.Attr("src"); exists {
-        // 		if m, v := findMatches(script, app.ScriptRegex); len(m) > 0 {
-        // 			findings.Matches = append(findings.Matches, m...)
-        // 			findings.updateVersion(v)
-        // 		}
-        // 	}
-        // })
-
         // meta
         for (meta_to_check, expected_value) in self.meta.iter() {
-            if let Some(value) = meta_tags.get(meta_to_check) {
+            if let Some(value) = raw_data.meta_tags.get(meta_to_check) {
                 // an empty expected_value means that we only care about the existence if the cookie
                 if check_text(expected_value, value) {
                     eprintln!(
