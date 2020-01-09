@@ -1,3 +1,28 @@
+//! # domain_info
+//!
+//! An early-stage crate and tool to fetch information about a domain, primarily by looking at the information on the front page of the domain.
+//!
+//! From the front page, it gets the load time, language, word count, image/form/script counts and it uses the Wappalizer project rules to identify technilogies used on the front page.
+//!
+//! It also does a reverse dns lookup on the host and attempts to determine the host company/platform (E.g GoDaddy, Bluehost, AWS)
+//!
+//! Additionally it gets the mail server hosts and whois information about the domain.
+
+//!
+//! ## Basic use
+//!
+//! For a single request:
+//!
+//! ```no_run
+//! # use domain_info::{Domain,ScanError,Scanner};
+//! let info = Domain::from("google.com").unwrap().scan();
+//! ```
+//!
+//! (Note that this needs the tokio runtime)
+//!
+//! For a significant number of domains refer to the main.rs file for an example
+//! which uses async/await and the tokio runtime to efficiently scan a list of domains.
+//!
 extern crate reqwest;
 mod dns;
 mod mx;
@@ -7,22 +32,18 @@ mod wappalyzer;
 #[macro_use]
 extern crate lazy_static;
 
-use std::error::Error;
-use std::fmt;
-// use std::fmt;
 use dns::{DnsInfo, HostInfo};
 use mx::MxInfo;
 use page::PageInfo;
-// use page::PageInfo;
 use serde::{Deserialize, Serialize};
+use std::error::Error;
+use std::fmt;
 
+/// Possible Errors in the domain_info lib
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ScanError {
     Domain(String),
     Dns(String),
-    Content(String),
-    Page(String),
-    Head(String),
     Other(String),
 }
 impl fmt::Display for ScanError {
@@ -33,9 +54,6 @@ impl fmt::Display for ScanError {
             match self {
                 ScanError::Domain(err) => format!("Domain/{}", err),
                 ScanError::Dns(err) => format!("Dns/{}", err),
-                ScanError::Content(err) => format!("Content/{}", err),
-                ScanError::Page(err) => format!("Page/{}", err),
-                ScanError::Head(err) => format!("Head/{}", err),
                 ScanError::Other(err) => format!("Other/{}", err),
             }
         )
@@ -70,6 +88,20 @@ impl From<std::str::Utf8Error> for ScanError {
     }
 }
 
+/// A wrapper type around a domain
+///
+/// # Examples
+///
+/// ```rust
+/// # use domain_info::{Domain,ScanError};
+/// assert_eq!(Domain::from("google.com"),Ok(Domain(String::from("google.com"))));
+/// assert_eq!(Domain::from("invalid"),Err(ScanError::Domain(String::from("invalid domain"))));
+/// ```
+///
+/// # Errors
+///
+/// This function fails if the domain is not in a valid form.
+/// (TODO: add non-trivial domain validation.)
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Domain(pub String);
 
@@ -95,21 +127,17 @@ impl fmt::Display for Domain {
     }
 }
 
+/// Results of a scan
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct DomainInfo {
-    domain: Domain,
-    dns_info: DnsInfo,
-    host_info: Option<HostInfo>,
-    // ssl_info: Option<SslInfo>,
-    front_page_info: Option<PageInfo>,
-    mx_info: Option<MxInfo>,
-    // whois_info: Option<WhoisInfo>,
-
-    // crawl_info: Option<CrawlInfo>,
-    // screenshot_info: Option<ScreenshotInfo>,
+    pub domain: Domain,
+    pub dns_info: DnsInfo,
+    pub host_info: Option<HostInfo>,
+    // pub ssl_info: Option<SslInfo>,
+    pub front_page_info: Option<PageInfo>,
+    pub mx_info: Option<MxInfo>,
+    // pub whois_info: Option<WhoisInfo>,
 }
-
-pub type ScannerResult<T> = Result<T, ScanError>;
 
 impl DomainInfo {
     pub fn from(domain: Domain, dns_info: DnsInfo) -> DomainInfo {
@@ -127,6 +155,10 @@ impl DomainInfo {
     }
 }
 
+/// Helper type for the domain_info errors
+pub type ScannerResult<T> = Result<T, ScanError>;
+
+/// A very simple representation for cookie data
 #[derive(Debug, PartialEq)]
 pub struct Cookie {
     name: String,
@@ -148,6 +180,7 @@ pub struct CrawlInfo {}
 #[derive(Debug, PartialEq)]
 pub struct ScreenshotInfo {}
 
+/// A helper trait to support ergonomic use of the lib
 pub trait Scanner<Res> {
     fn scan(&self) -> ScannerResult<Res>;
 }

@@ -13,20 +13,21 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+/// Results of scanning a page
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct PageInfo {
-  status_code: String,
-  load_time: Duration,
-  word_count: u64,
-  content_length: u64,
-  techs: Vec<wappalyzer::Tech>,
-  page_content: String,
-  page_text: String,
-  language: String,
-  iframe_count: usize,
-  image_count: usize,
-  form_count: usize,
-  script_count: usize,
+  pub status_code: String,
+  pub load_time: Duration,
+  pub word_count: u64,
+  pub content_length: u64,
+  pub techs: Vec<wappalyzer::Tech>,
+  pub page_content: String,
+  pub page_text: String,
+  pub language: String,
+  pub iframe_count: usize,
+  pub image_count: usize,
+  pub form_count: usize,
+  pub script_count: usize,
   // headers: reqwest::header::HeaderMap,
 }
 

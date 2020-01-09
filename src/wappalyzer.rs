@@ -1,15 +1,13 @@
 use serde::de;
 use serde::{Deserialize, Deserializer, Serialize};
-// use serde_json::Value;
 
-use std::fmt;
-use std::marker::PhantomData;
-// use serde_json::{json, Map, Result, Value};
 use crate::page;
 use futures::future::join_all;
 use regex::Regex;
 use std::collections::HashMap;
+use std::fmt;
 use std::fs;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 extern crate lazy_static;
@@ -17,9 +15,7 @@ extern crate lazy_static;
 pub async fn check(raw_data: Arc<page::RawData>) -> Vec<Tech> {
     let mut futures: Vec<tokio::task::JoinHandle<Option<Tech>>> = vec![];
 
-    // for (_name, app) in &APPS_JSON_DATA.apps {
     for app in APPS_JSON_DATA.apps.values() {
-        // futures.push(app.tech(headers, cookies, meta_tags, parsed_html, body));
         futures.push(app.tech_tokio(raw_data.clone()));
     }
 
@@ -47,10 +43,11 @@ lazy_static! {
     };
 }
 
+/// A technology that is found on a page
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Tech {
-    category: String,
-    name: String,
+    pub category: String,
+    pub name: String,
 }
 impl Tech {
     /// let tech = Tech::named("webpack");

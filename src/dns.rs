@@ -2,6 +2,8 @@ extern crate dns_lookup;
 use super::{Domain, ScanError, ScannerResult};
 use serde::{Deserialize, Serialize};
 
+/// Basic DNS lookup infomation, including the ip and
+/// saving additional ips as a vector.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct DnsInfo {
     pub ip: std::net::IpAddr,
@@ -28,6 +30,8 @@ impl DnsInfo {
 //     }
 // }
 
+/// Information from a dns scan, including a reverse lookup of the server,
+/// hopefully finding the company/brand that hosts the site.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HostInfo {
     pub host: Host,
@@ -47,11 +51,15 @@ impl HostInfo {
 //     }
 // }
 
+/// A website's hostname. E.g. server51.hostgator.com
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Host(String);
+
+/// The top level domain for the host. E.g. hostgator.com
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct HostTld(String);
 
+/// Known list of host platforms (this is who is hosting the website)
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum HostPlatform {
     A2Hosting,

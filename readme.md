@@ -75,7 +75,10 @@ An initial implementation is there and it performs adequatily for small lists of
 
 
 ## TODO
+[] Better domain validation
 [] Executable will silently hang if there is no argument and no piped input.  I need to find a mechanism in Rust to check if there is any input for stdin.
+[] Extract Wappalyzer into its own crate
+[] Extract the reverse dns host company/brand into its own crate
 
 ## Notes
 
