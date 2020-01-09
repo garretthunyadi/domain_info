@@ -6,11 +6,8 @@ use std::fmt;
 use std::marker::PhantomData;
 // use serde_json::{json, Map, Result, Value};
 use crate::page;
-use crate::Cookie;
 use futures::future::join_all;
 use regex::Regex;
-use reqwest::header::HeaderMap;
-use scraper::{Html, Selector};
 use std::collections::HashMap;
 use std::fs;
 use std::sync::Arc;
@@ -59,13 +56,13 @@ impl Tech {
     /// let tech = Tech::named("webpack");
     /// assert_eq!(tech.name, "webpack");
     /// assert_eq!(tech.category, "Miscellaneous");
-    fn named(name: &str) -> Option<Tech> {
-        if let Some(app) = APPS_JSON_DATA.named(name) {
-            Some(Tech::from(app))
-        } else {
-            None
-        }
-    }
+    // fn named(name: &str) -> Option<Tech> {
+    //     if let Some(app) = APPS_JSON_DATA.named(name) {
+    //         Some(Tech::from(app))
+    //     } else {
+    //         None
+    //     }
+    // }
 
     pub fn from(app: &App) -> Tech {
         Tech {
@@ -81,9 +78,9 @@ pub struct AppsJsonData {
     categories: HashMap<u32, Category>,
 }
 impl AppsJsonData {
-    fn named(&self, name: &str) -> Option<&App> {
-        self.apps.get(&String::from(name))
-    }
+    // fn named(&self, name: &str) -> Option<&App> {
+    //     self.apps.get(&String::from(name))
+    // }
 
     fn category_name(&self, id: u32) -> Option<String> {
         match self.categories.get(&id) {
@@ -273,12 +270,12 @@ mod tests {
     use super::*;
     // use reqwest::header;
 
-    #[test]
-    fn tech_lookup() {
-        let tech = Tech::named("webpack").unwrap();
-        assert_eq!(tech.name, "webpack");
-        assert_eq!(tech.category, "Miscellaneous");
-    }
+    // #[test]
+    // fn tech_lookup() {
+    //     let tech = Tech::named("webpack").unwrap();
+    //     assert_eq!(tech.name, "webpack");
+    //     assert_eq!(tech.category, "Miscellaneous");
+    // }
 
     // #[test]
     // fn test_check_app() {
