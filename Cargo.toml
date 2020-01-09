@@ -3,6 +3,8 @@ name = "domain_info"
 version = "0.1.0"
 authors = ["Garrett Hunyadi <garrett@pobox.com>"]
 edition = "2018"
+description = "Fetch information about a domain, including front page stats and technologies used."
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 serde = { version = "1.0.99", features = ["derive"] } 
