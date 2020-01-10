@@ -24,10 +24,10 @@
 //! which uses async/await and the tokio runtime to efficiently scan a list of domains.
 //!
 extern crate reqwest;
-mod dns;
-mod mx;
-mod page;
-mod wappalyzer;
+pub mod dns;
+pub mod mx;
+pub mod page;
+pub mod wappalyzer;
 
 #[macro_use]
 extern crate lazy_static;

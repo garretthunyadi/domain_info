@@ -1,5 +1,6 @@
 extern crate reqwest;
 
+use domain_info::wappalyzer::download_apps_json_if_needed;
 use domain_info::{Domain, Scanner};
 use futures::future::join_all;
 use std::env;
@@ -13,6 +14,8 @@ macro_rules! s {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    download_apps_json_if_needed().await?;
+
     let args: Vec<String> = env::args().collect();
 
     let mut domains = vec![];

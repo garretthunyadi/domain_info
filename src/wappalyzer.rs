@@ -7,10 +7,17 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 use std::marker::PhantomData;
+use std::path::Path;
 use std::sync::Arc;
 
 extern crate lazy_static;
+
+const APPS_JSON_PATH: &str = "./apps.json";
+const WAPPALYZER_APPS_JSON_URL: &str =
+    "https://raw.githubusercontent.com/AliasIO/wappalyzer/master/src/apps.json";
 
 pub async fn check(raw_data: Arc<page::RawData>) -> Vec<Tech> {
     let mut futures: Vec<tokio::task::JoinHandle<Option<Tech>>> = vec![];
@@ -30,7 +37,7 @@ pub async fn check(raw_data: Arc<page::RawData>) -> Vec<Tech> {
 
 lazy_static! {
     static ref APPS_JSON_DATA: AppsJsonData = {
-        let apps_json = fs::read_to_string("./apps.json")
+        let apps_json = fs::read_to_string(APPS_JSON_PATH)
             .expect("Something went wrong reading the apps.json file");
         let mut apps_json_data: AppsJsonData =
             serde_json::from_str(&apps_json).expect("Error loading the apps.json file");
@@ -41,6 +48,21 @@ lazy_static! {
 
         apps_json_data
     };
+}
+
+pub async fn download_apps_json_if_needed() -> std::io::Result<()> {
+    if !Path::new(APPS_JSON_PATH).exists() {
+        println!("DOWNLOADING apps.json");
+        let response = reqwest::get(WAPPALYZER_APPS_JSON_URL)
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap(); // TODO
+        let mut dest = File::create(APPS_JSON_PATH)?;
+        write!(&mut dest, "{}", response)?;
+    }
+    Ok(())
 }
 
 /// A technology that is found on a page
