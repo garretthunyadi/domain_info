@@ -1,3 +1,4 @@
+apps.json
 /target
 **/*.rs.bk
 Cargo.lock

@@ -89,7 +89,7 @@ pub async fn front_page_scan(domain: &Domain) -> ScannerResult<PageInfo> {
   let mut meta_tags = HashMap::new();
   for meta in parsed_html.select(&selector) {
     if let (Some(name), Some(content)) = (meta.value().attr("name"), meta.value().attr("content")) {
-      eprintln!("META {} -> {}", name, content);
+      // eprintln!("META {} -> {}", name, content);
       meta_tags.insert(String::from(name), String::from(content));
     }
   }
@@ -146,7 +146,7 @@ fn body_text(html: &str) -> String {
   if let Some(body) = parsed_html.select(&selector).next() {
     body.text().collect::<Vec<_>>().join("|||||")
   } else {
-    eprintln!("(no body tag found)");
+    // eprintln!("(no body tag found)");
     "".to_string()
   }
 }

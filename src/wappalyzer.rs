@@ -7,17 +7,12 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs;
-use std::fs::File;
-use std::io::Write;
 use std::marker::PhantomData;
-use std::path::Path;
 use std::sync::Arc;
 
 extern crate lazy_static;
 
 const APPS_JSON_PATH: &str = "./apps.json";
-const WAPPALYZER_APPS_JSON_URL: &str =
-    "https://raw.githubusercontent.com/AliasIO/wappalyzer/master/src/apps.json";
 
 pub async fn check(raw_data: Arc<page::RawData>) -> Vec<Tech> {
     let mut futures: Vec<tokio::task::JoinHandle<Option<Tech>>> = vec![];
@@ -48,21 +43,6 @@ lazy_static! {
 
         apps_json_data
     };
-}
-
-pub async fn download_apps_json_if_needed() -> std::io::Result<()> {
-    if !Path::new(APPS_JSON_PATH).exists() {
-        println!("DOWNLOADING apps.json");
-        let response = reqwest::get(WAPPALYZER_APPS_JSON_URL)
-            .await
-            .unwrap()
-            .text()
-            .await
-            .unwrap(); // TODO
-        let mut dest = File::create(APPS_JSON_PATH)?;
-        write!(&mut dest, "{}", response)?;
-    }
-    Ok(())
 }
 
 /// A technology that is found on a page
@@ -186,10 +166,10 @@ impl App {
                 // println!("1. {:?}", value);
                 if let Ok(string_value) = value.to_str() {
                     if check_text(expected_value, string_value) {
-                        eprintln!(
-                            "||| HEADER ({}) hit on: {}",
-                            header_to_check, expected_value
-                        );
+                        // eprintln!(
+                        //     "||| HEADER ({}) hit on: {}",
+                        //     header_to_check, expected_value
+                        // );
                         return true; // TODO: temp impletation that returns on any hit
                     }
                 }
@@ -199,7 +179,7 @@ impl App {
         // html
         for maybe_regex in self.html.iter() {
             if check_text(maybe_regex, &raw_data.html) {
-                eprintln!("||| HTML hit on: {}", maybe_regex);
+                // eprintln!("||| HTML hit on: {}", maybe_regex);
                 return true; // TODO: temp impletation that returns on any hit
             }
         }
@@ -223,7 +203,7 @@ impl App {
             }) {
                 // an empty expected_value means that we only care about the existence if the cookie
                 if expected_value.is_empty() || check_text(expected_value, &c.value) {
-                    eprintln!("||| COOKIE ({}) hit on: {}", c.value, expected_value);
+                    // eprintln!("||| COOKIE ({}) hit on: {}", c.value, expected_value);
                     return true; // TODO: Temp impl where one hit returns
                 }
             }
@@ -234,7 +214,7 @@ impl App {
         for (js_to_check, _rule_value) in self.js.iter() {
             for js in &raw_data.script_tags {
                 if check_text(js_to_check, js) {
-                    eprintln!("||| JS hit on: {}", js_to_check);
+                    // eprintln!("||| JS hit on: {}", js_to_check);
                     return true;
                 }
             }
@@ -245,10 +225,10 @@ impl App {
             if let Some(value) = raw_data.meta_tags.get(meta_to_check) {
                 // an empty expected_value means that we only care about the existence if the cookie
                 if check_text(expected_value, value) {
-                    eprintln!(
-                        "||| META ({}) hit on: {} for value: {}",
-                        meta_to_check, expected_value, value
-                    );
+                    // eprintln!(
+                    //     "||| META ({}) hit on: {} for value: {}",
+                    //     meta_to_check, expected_value, value
+                    // );
                     return true; // TODO: Temp impl where one hit returns
                 }
             }
