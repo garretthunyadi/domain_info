@@ -6,13 +6,15 @@ use futures::future::join_all;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
-use std::fs;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
 extern crate lazy_static;
 
-const APPS_JSON_PATH: &str = "./apps.json";
+// The build.rs build script reads the local apps.json file at build time
+// and includes the text string as a constant in a created 'apps.json.rs'
+// in the build dir. Here, we include this constant.
+include!(concat!(env!("OUT_DIR"), "/apps.json.rs"));
 
 pub async fn check(raw_data: Arc<page::RawData>) -> Vec<Tech> {
     let mut futures: Vec<tokio::task::JoinHandle<Option<Tech>>> = vec![];
@@ -30,12 +32,25 @@ pub async fn check(raw_data: Arc<page::RawData>) -> Vec<Tech> {
         .collect::<Vec<_>>()
 }
 
+// lazy_static! {
+//     static ref APPS_JSON_DATA: AppsJsonData = {
+//         let apps_json = fs::read_to_string(APPS_JSON_PATH)
+//             .expect("Something went wrong reading the apps.json file");
+//         let mut apps_json_data: AppsJsonData =
+//             serde_json::from_str(&apps_json).expect("Error loading the apps.json file");
+
+//         for (app_name, app) in apps_json_data.apps.iter_mut() {
+//             (*app).name = String::from(app_name);
+//         }
+
+//         apps_json_data
+//     };
+// }
+
 lazy_static! {
     static ref APPS_JSON_DATA: AppsJsonData = {
-        let apps_json = fs::read_to_string(APPS_JSON_PATH)
-            .expect("Something went wrong reading the apps.json file");
         let mut apps_json_data: AppsJsonData =
-            serde_json::from_str(&apps_json).expect("Error loading the apps.json file");
+            serde_json::from_str(APPS_JSON_TEXT).expect("Error loading the apps.json file");
 
         for (app_name, app) in apps_json_data.apps.iter_mut() {
             (*app).name = String::from(app_name);
