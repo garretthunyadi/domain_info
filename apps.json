@@ -1,5 +1,5 @@
 {
-  "$schema": "../schema.json",
+  "$schema": "./schema.json",
   "apps": {
     "1C-Bitrix": {
       "cats": [
@@ -1572,7 +1572,6 @@
         32
       ],
       "html": "<meta property=\"cf:app_domain\" content=\"app.clickfunnels.com\"",
-      "env": "Clickfunnels",
       "icon": "ClickFunnels.png",
       "website": "https://www.clickfunnels.com"
     },
