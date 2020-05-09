@@ -1,7 +1,7 @@
 
 # domain_info
 
-An early-stage crate and tool to fetch information about a domain, primarily by looking at the information on the front page of the domain.
+An early-stage crate and command line tool to fetch information about a domain, primarily by looking at the information on the front page of the domain.
 
 From the front page, it gets the load time, language, word count, image/form/script counts and it uses the Wappalizer project rules to identify technilogies used on the front page.
 
