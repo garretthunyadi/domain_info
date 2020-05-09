@@ -71,7 +71,7 @@ cat domains.txt | domain_info | jq
 ```
 
 ## Status
-An initial implementation is there and it performs adequatily for small lists of domains.  More work and testing needs to be done when running against large lists of domains.
+An initial implementation is there and it performs adequately for small lists of domains.  More work and testing needs to be done when running against large lists of domains.
 
 
 ## TODO
